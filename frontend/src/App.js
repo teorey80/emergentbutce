@@ -31,6 +31,13 @@ function App() {
   });
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [filterSummary, setFilterSummary] = useState(null);
+  
+  // Mobile states
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showMobileNav, setShowMobileNav] = useState(false);
+  const [pullToRefresh, setPullToRefresh] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
   // Form states
   const [formData, setFormData] = useState({
