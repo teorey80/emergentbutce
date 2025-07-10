@@ -526,11 +526,20 @@ async def upload_excel(file: UploadFile = File(...)):
     
     try:
         contents = await file.read()
-        # Try to read Excel file
+        # Try to read Excel file with different engines
         try:
+            # First try with openpyxl (for .xlsx files)
             df = pd.read_excel(io.BytesIO(contents), engine='openpyxl')
-        except:
-            df = pd.read_excel(io.BytesIO(contents))
+        except Exception as e1:
+            try:
+                # Then try with xlrd (for .xls files)
+                df = pd.read_excel(io.BytesIO(contents), engine='xlrd')
+            except Exception as e2:
+                try:
+                    # Finally try with default engine
+                    df = pd.read_excel(io.BytesIO(contents))
+                except Exception as e3:
+                    raise HTTPException(status_code=400, detail=f"Could not read Excel file. Tried openpyxl: {str(e1)}, xlrd: {str(e2)}, default: {str(e3)}")
         
         # Apply same logic as CSV
         possible_columns = {
