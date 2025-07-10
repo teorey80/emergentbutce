@@ -18,6 +18,19 @@ function App() {
   const [trendStats, setTrendStats] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [uploadStatus, setUploadStatus] = useState('');
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    category: 'all',
+    minAmount: '',
+    maxAmount: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
+  const [filterSummary, setFilterSummary] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({
