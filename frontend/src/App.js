@@ -1219,43 +1219,110 @@ function App() {
                   )}
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
-                  {filteredExpenses.map((expense) => {
-                    const categoryInfo = getCategoryInfo(expense.category);
-                    return (
-                      <div key={expense.id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div 
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
-                              style={{ backgroundColor: categoryInfo.color }}
-                            >
-                              {categoryInfo.icon}
+                <>
+                  {/* Table Header */}
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-5'} items-center font-semibold text-gray-700`}>
+                      <div className={`${isMobile ? 'hidden' : 'col-span-2'}`}>Harcama Detayı</div>
+                      <div className={`${isMobile ? 'hidden' : ''}`}>Kategori</div>
+                      <div className={`${isMobile ? 'hidden' : ''}`}>Tutar</div>
+                      <div className={`${isMobile ? 'hidden' : ''}`}>İşlemler</div>
+                    </div>
+                  </div>
+                  
+                  {/* Expenses Table */}
+                  <div className="divide-y divide-gray-200">
+                    {filteredExpenses.map((expense) => {
+                      const categoryInfo = getCategoryInfo(expense.category);
+                      return (
+                        <div key={expense.id} className={`p-4 hover:bg-gray-50 transition-colors ${isMobile ? '' : 'px-6 py-4'}`}>
+                          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-5'} items-center`}>
+                            {/* Expense Details */}
+                            <div className={`${isMobile ? '' : 'col-span-2'} flex items-center`}>
+                              <div 
+                                className={`rounded-full flex items-center justify-center text-white font-bold mr-3 ${isMobile ? 'w-10 h-10 text-sm' : 'w-12 h-12 text-lg'}`}
+                                style={{ backgroundColor: categoryInfo.color }}
+                              >
+                                {categoryInfo.icon}
+                              </div>
+                              <div>
+                                <h4 className={`font-medium text-gray-900 ${isMobile ? 'text-sm' : 'text-base'}`}>{expense.title}</h4>
+                                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                  {formatDate(expense.date)}
+                                </p>
+                                {expense.description && (
+                                  <p className={`text-gray-600 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>{expense.description}</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="text-lg font-medium text-gray-900">{expense.title}</h4>
-                              <p className="text-sm text-gray-500">{categoryInfo.name} • {formatDate(expense.date)}</p>
-                              {expense.description && (
-                                <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
+
+                            {/* Category Column */}
+                            <div className={`${isMobile ? 'mt-2' : ''}`}>
+                              {editingCategory === expense.id ? (
+                                <div className="flex items-center space-x-2">
+                                  <select
+                                    value={expense.category}
+                                    onChange={(e) => handleCategoryUpdate(expense.id, e.target.value)}
+                                    disabled={updatingExpense === expense.id}
+                                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    {categories.map((category) => (
+                                      <option key={category.id} value={category.id}>
+                                        {category.icon} {category.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {updatingExpense === expense.id ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                  ) : (
+                                    <button
+                                      onClick={cancelCategoryEdit}
+                                      className="text-gray-500 hover:text-gray-700 text-sm"
+                                    >
+                                      ✖️
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleCategoryEdit(expense.id, expense.category)}
+                                  className={`flex items-center space-x-2 text-left hover:bg-gray-100 rounded px-2 py-1 transition-colors ${isMobile ? 'text-sm' : ''}`}
+                                >
+                                  <span>{categoryInfo.icon}</span>
+                                  <span className="text-gray-700">{categoryInfo.name}</span>
+                                  <span className="text-gray-400 text-xs">✏️</span>
+                                </button>
+                              )}
+                              {isMobile && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Kategoriyi değiştirmek için tıklayın
+                                </div>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="text-right mr-4">
-                              <div className="text-xl font-bold text-gray-900">{formatCurrency(expense.amount)}</div>
+
+                            {/* Amount */}
+                            <div className={`${isMobile ? 'mt-2' : ''}`}>
+                              <div className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                                {formatCurrency(expense.amount)}
+                              </div>
                             </div>
-                            <button
-                              onClick={() => deleteExpense(expense.id)}
-                              className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
-                            >
-                              🗑️
-                            </button>
+
+                            {/* Actions */}
+                            <div className={`flex items-center justify-end space-x-2 ${isMobile ? 'mt-2' : ''}`}>
+                              <button
+                                onClick={() => deleteExpense(expense.id)}
+                                className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                title="Harcamayı Sil"
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
