@@ -86,7 +86,77 @@ function App() {
   useEffect(() => {
     fetchExpenses();
     fetchAllStats();
+    // Initialize filtered expenses
+    setFilteredExpenses(expenses);
   }, []);
+
+  // Update filtered expenses when expenses change
+  useEffect(() => {
+    if (!showFilters) {
+      setFilteredExpenses(expenses);
+    }
+  }, [expenses, showFilters]);
+
+  // Handle filter changes
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Apply filters
+  const applyFilters = async () => {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters.search) params.append('search', filters.search);
+      if (filters.category !== 'all') params.append('category', filters.category);
+      if (filters.minAmount) params.append('min_amount', filters.minAmount);
+      if (filters.maxAmount) params.append('max_amount', filters.maxAmount);
+      if (filters.startDate) params.append('start_date', filters.startDate);
+      if (filters.endDate) params.append('end_date', filters.endDate);
+
+      const response = await axios.get(`${API}/expenses/search?${params}`);
+      setFilteredExpenses(response.data);
+
+      // Get summary for filtered data
+      const summaryParams = new URLSearchParams();
+      if (filters.category !== 'all') summaryParams.append('category', filters.category);
+      if (filters.startDate) summaryParams.append('start_date', filters.startDate);
+      if (filters.endDate) summaryParams.append('end_date', filters.endDate);
+
+      const summaryResponse = await axios.get(`${API}/expenses/summary?${summaryParams}`);
+      setFilterSummary(summaryResponse.data);
+
+    } catch (error) {
+      console.error('Error applying filters:', error);
+    }
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      category: 'all',
+      minAmount: '',
+      maxAmount: '',
+      startDate: '',
+      endDate: ''
+    });
+    setFilteredExpenses(expenses);
+    setFilterSummary(null);
+  };
+
+  // Apply filters when they change
+  useEffect(() => {
+    if (showFilters) {
+      const timeoutId = setTimeout(() => {
+        applyFilters();
+      }, 500); // Debounce
+      return () => clearTimeout(timeoutId);
+    }
+  }, [filters, showFilters]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
