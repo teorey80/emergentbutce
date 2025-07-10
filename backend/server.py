@@ -421,10 +421,29 @@ async def upload_csv(file: UploadFile = File(...)):
                     continue
                 
                 # Extract amount (handle negative values for expenses)
-                amount_str = str(row[column_mapping['amount']]).replace(',', '.').replace(' ', '')
-                # Remove currency symbols
-                amount_str = ''.join(char for char in amount_str if char.isdigit() or char in '.-')
-                amount = abs(float(amount_str))  # Take absolute value for expenses
+                amount_val = row[column_mapping['amount']]
+                if pd.isna(amount_val):
+                    continue
+                
+                # Handle different amount formats
+                if isinstance(amount_val, str):
+                    # Remove currency symbols and extra text
+                    amount_str = str(amount_val).strip()
+                    # Remove TL, ₺, and other currency symbols
+                    amount_str = re.sub(r'[₺TL]', '', amount_str)
+                    # Replace comma with dot for decimal
+                    amount_str = amount_str.replace(',', '.')
+                    # Remove spaces
+                    amount_str = amount_str.replace(' ', '')
+                    # Extract only numeric values with decimal
+                    amount_match = re.search(r'-?(\d+\.?\d*)', amount_str)
+                    if amount_match:
+                        amount = abs(float(amount_match.group(1)))
+                    else:
+                        continue
+                else:
+                    # If it's already a number
+                    amount = abs(float(amount_val))
                 
                 if amount <= 0:
                     continue
