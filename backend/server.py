@@ -825,8 +825,32 @@ async def test_filter_expenses(min_amount: Optional[float] = None, max_amount: O
         "sample": expenses[:3] if expenses else []
     }
 
-# Include the router in the main app
-app.include_router(api_router)
+# Update expense category
+@api_router.put("/expenses/{expense_id}/category")
+async def update_expense_category(expense_id: str, category_data: dict):
+    """Update only the category of an expense"""
+    new_category = category_data.get('category')
+    
+    # Validate category
+    valid_categories = [cat["id"] for cat in EXPENSE_CATEGORIES]
+    if new_category not in valid_categories:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    
+    # Update expense
+    result = await db.expenses.update_one(
+        {"id": expense_id}, 
+        {"$set": {"category": new_category}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Get updated expense
+    updated_expense = await db.expenses.find_one({"id": expense_id})
+    if isinstance(updated_expense.get('created_at'), str):
+        updated_expense['created_at'] = datetime.fromisoformat(updated_expense['created_at'])
+    
+    return Expense(**updated_expense)
 
 # Get filtered expenses with advanced search  
 @api_router.get("/expenses/filter")
