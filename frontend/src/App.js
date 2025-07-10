@@ -164,7 +164,7 @@ function App() {
       if (filters.startDate) params.append('start_date', filters.startDate);
       if (filters.endDate) params.append('end_date', filters.endDate);
 
-      const response = await axios.get(`${API}/expenses/search?${params}`);
+      const response = await axios.get(`${API}/expenses/filter?${params}`);
       setFilteredExpenses(response.data);
 
       // Get summary for filtered data
