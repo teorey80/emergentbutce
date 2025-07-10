@@ -771,8 +771,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 app.include_router(api_router)
 
 # Get filtered expenses with advanced search
-@api_router.get("/expenses/search", response_model=List[Expense])
-async def search_expenses(
+@api_router.get("/expenses/filter")
+async def filter_expenses(
     search: Optional[str] = None,
     category: Optional[str] = None,
     min_amount: Optional[float] = None,
@@ -822,11 +822,13 @@ async def search_expenses(
     print(f"Found {len(expenses)} expenses")  # Debug log
     
     # Convert date strings back to datetime objects
+    result_expenses = []
     for expense in expenses:
         if isinstance(expense.get('created_at'), str):
             expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+        result_expenses.append(Expense(**expense))
     
-    return [Expense(**expense) for expense in expenses]
+    return result_expenses
 
 # Get expense summary by filters
 @api_router.get("/expenses/summary")
