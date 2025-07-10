@@ -797,7 +797,7 @@ async def test_filter_expenses(min_amount: Optional[float] = None, max_amount: O
 # Include the router in the main app
 app.include_router(api_router)
 
-# Get filtered expenses with advanced search
+# Get filtered expenses with advanced search  
 @api_router.get("/expenses/filter")
 async def filter_expenses(
     search: Optional[str] = None,
@@ -841,19 +841,20 @@ async def filter_expenses(
             date_filter["$lte"] = end_date
         query["date"] = date_filter
     
-    print(f"MongoDB Query: {query}")  # Debug log
-    
-    # Execute query
-    expenses = await db.expenses.find(query).sort("created_at", -1).limit(limit).to_list(limit)
-    
-    print(f"Found {len(expenses)} expenses")  # Debug log
+    # Execute query and convert to list
+    expenses_cursor = db.expenses.find(query, {"_id": 0}).sort("created_at", -1).limit(limit)
+    expenses = await expenses_cursor.to_list(limit)
     
     # Convert date strings back to datetime objects
     result_expenses = []
     for expense in expenses:
-        if isinstance(expense.get('created_at'), str):
-            expense['created_at'] = datetime.fromisoformat(expense['created_at'])
-        result_expenses.append(Expense(**expense))
+        try:
+            if isinstance(expense.get('created_at'), str):
+                expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+            result_expenses.append(Expense(**expense))
+        except Exception as e:
+            # Skip invalid records
+            continue
     
     return result_expenses
 
