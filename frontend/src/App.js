@@ -38,6 +38,13 @@ function App() {
   const [pullToRefresh, setPullToRefresh] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+  
+  // Smart features states
+  const [insights, setInsights] = useState([]);
+  const [predictions, setPredictions] = useState({});
+  const [expenseLimits, setExpenseLimits] = useState({});
+  const [limitWarnings, setLimitWarnings] = useState([]);
+  const [showInsights, setShowInsights] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
