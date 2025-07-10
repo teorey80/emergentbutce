@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import { useDropzone } from 'react-dropzone';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -10,7 +12,12 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [stats, setStats] = useState({ total_amount: 0, expense_count: 0, category_stats: {} });
+  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [trendStats, setTrendStats] = useState([]);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [uploadStatus, setUploadStatus] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -46,11 +53,18 @@ function App() {
     }
   };
 
-  // Fetch stats
-  const fetchStats = async () => {
+  // Fetch all stats
+  const fetchAllStats = async () => {
     try {
-      const response = await axios.get(`${API}/expenses/stats/summary`);
-      setStats(response.data);
+      const [statsResponse, monthlyResponse, trendsResponse] = await Promise.all([
+        axios.get(`${API}/expenses/stats/summary`),
+        axios.get(`${API}/expenses/stats/monthly`),
+        axios.get(`${API}/expenses/stats/trends`)
+      ]);
+      
+      setStats(statsResponse.data);
+      setMonthlyStats(monthlyResponse.data);
+      setTrendStats(trendsResponse.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -58,7 +72,7 @@ function App() {
 
   useEffect(() => {
     fetchExpenses();
-    fetchStats();
+    fetchAllStats();
   }, []);
 
   // Handle form input changes
@@ -98,7 +112,7 @@ function App() {
       
       setShowAddForm(false);
       fetchExpenses();
-      fetchStats();
+      fetchAllStats();
     } catch (error) {
       console.error('Error creating expense:', error);
       if (error.response) {
@@ -116,13 +130,70 @@ function App() {
       try {
         await axios.delete(`${API}/expenses/${expenseId}`);
         fetchExpenses();
-        fetchStats();
+        fetchAllStats();
       } catch (error) {
         console.error('Error deleting expense:', error);
         alert('Harcama silinirken bir hata oluştu');
       }
     }
   };
+
+  // File upload handlers
+  const onDrop = async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploadStatus('Yükleniyor...');
+      let endpoint = '';
+      
+      if (file.name.endsWith('.csv')) {
+        endpoint = '/upload/csv';
+      } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        endpoint = '/upload/excel';
+      } else if (file.name.endsWith('.pdf')) {
+        endpoint = '/upload/pdf';
+      } else {
+        throw new Error('Desteklenmeyen dosya formatı');
+      }
+
+      const response = await axios.post(`${API}${endpoint}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setUploadStatus(`✅ ${response.data.message}`);
+      
+      if (endpoint !== '/upload/pdf') {
+        fetchExpenses();
+        fetchAllStats();
+      }
+      
+      setTimeout(() => {
+        setUploadStatus('');
+        setShowImportModal(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setUploadStatus(`❌ Hata: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/pdf': ['.pdf']
+    },
+    multiple: false
+  });
 
   // Get category info
   const getCategoryInfo = (categoryId) => {
@@ -141,6 +212,19 @@ function App() {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('tr-TR');
   };
+
+  // Prepare chart data
+  const pieChartData = Object.entries(stats.category_stats).map(([categoryId, stat]) => ({
+    name: stat.name,
+    value: stat.total,
+    color: stat.color
+  }));
+
+  const monthlyChartData = monthlyStats.map(month => ({
+    name: month.month,
+    amount: month.total,
+    count: month.count
+  }));
 
   if (loading) {
     return (
@@ -162,131 +246,324 @@ function App() {
             <div className="flex items-center">
               <h1 className="text-3xl font-bold text-gray-900">💰 Harcama Takip</h1>
             </div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              + Harcama Ekle
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                📁 Dosya İçe Aktar
+              </button>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                + Harcama Ekle
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div>
-              <h2 className="text-4xl font-bold mb-4">Harcamalarınızı Kontrol Edin</h2>
-              <p className="text-xl mb-6">Günlük harcamalarınızı takip edin, kategorilere ayırın ve mali durumunuzu analiz edin.</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                  <div className="text-2xl font-bold">{formatCurrency(stats.total_amount)}</div>
-                  <div className="text-sm opacity-90">Toplam Harcama</div>
-                </div>
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                  <div className="text-2xl font-bold">{stats.expense_count}</div>
-                  <div className="text-sm opacity-90">Toplam İşlem</div>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <img 
-                src="https://images.pexels.com/photos/7789849/pexels-photo-7789849.jpeg" 
-                alt="Financial Dashboard" 
-                className="rounded-lg shadow-2xl max-w-md w-full"
-              />
-            </div>
-          </div>
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'dashboard' 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📊 Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('expenses')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'expenses' 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📋 Harcamalar
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'analytics' 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📈 Analitik
+            </button>
+          </nav>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Stats */}
-        {Object.keys(stats.category_stats).length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Kategori Dağılımı</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Object.entries(stats.category_stats).map(([categoryId, stat]) => (
-                <div key={categoryId} className="bg-white rounded-lg shadow-sm p-4 border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-2xl mr-3">{stat.icon}</span>
-                      <div>
-                        <div className="font-medium text-gray-900">{stat.name}</div>
-                        <div className="text-sm text-gray-500">{stat.count} işlem</div>
-                      </div>
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div>
+            {/* Hero Section */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center p-8">
+                <div>
+                  <h2 className="text-4xl font-bold mb-4">Harcamalarınızı Kontrol Edin</h2>
+                  <p className="text-xl mb-6">Günlük harcamalarınızı takip edin, kategorilere ayırın ve mali durumunuzu analiz edin.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+                      <div className="text-2xl font-bold">{formatCurrency(stats.total_amount)}</div>
+                      <div className="text-sm opacity-90">Toplam Harcama</div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900">{formatCurrency(stat.total)}</div>
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+                      <div className="text-2xl font-bold">{stats.expense_count}</div>
+                      <div className="text-sm opacity-90">Toplam İşlem</div>
                     </div>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-center">
+                  <img 
+                    src="https://images.pexels.com/photos/7789849/pexels-photo-7789849.jpeg" 
+                    alt="Financial Dashboard" 
+                    className="rounded-lg shadow-2xl max-w-md w-full"
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Category Stats */}
+            {Object.keys(stats.category_stats).length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Kategori Dağılımı</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Object.entries(stats.category_stats).map(([categoryId, stat]) => (
+                    <div key={categoryId} className="bg-white rounded-lg shadow-sm p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-2xl mr-3">{stat.icon}</span>
+                          <div>
+                            <div className="font-medium text-gray-900">{stat.name}</div>
+                            <div className="text-sm text-gray-500">{stat.count} işlem</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900">{formatCurrency(stat.total)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Charts */}
+            {pieChartData.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Kategori Dağılımı</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {pieChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {monthlyChartData.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Aylık Harcamalar</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={monthlyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                        <Bar dataKey="amount" fill="#3B82F6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Expenses List */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-xl font-semibold text-gray-900">Son Harcamalar</h3>
-          </div>
-          
-          {expenses.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="text-6xl mb-4">📊</div>
-              <h3 className="text-xl font-medium text-gray-900 mb-2">Henüz harcama bulunmuyor</h3>
-              <p className="text-gray-500 mb-6">İlk harcamanızı ekleyerek başlayın</p>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                Harcama Ekle
-              </button>
+        {/* Expenses Tab */}
+        {activeTab === 'expenses' && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900">Harcamalar</h3>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {expenses.map((expense) => {
-                const categoryInfo = getCategoryInfo(expense.category);
-                return (
-                  <div key={expense.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
-                          style={{ backgroundColor: categoryInfo.color }}
-                        >
-                          {categoryInfo.icon}
+            
+            {expenses.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="text-6xl mb-4">📊</div>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Henüz harcama bulunmuyor</h3>
+                <p className="text-gray-500 mb-6">İlk harcamanızı ekleyerek başlayın</p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Harcama Ekle
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {expenses.map((expense) => {
+                  const categoryInfo = getCategoryInfo(expense.category);
+                  return (
+                    <div key={expense.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
+                            style={{ backgroundColor: categoryInfo.color }}
+                          >
+                            {categoryInfo.icon}
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-medium text-gray-900">{expense.title}</h4>
+                            <p className="text-sm text-gray-500">{categoryInfo.name} • {formatDate(expense.date)}</p>
+                            {expense.description && (
+                              <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-lg font-medium text-gray-900">{expense.title}</h4>
-                          <p className="text-sm text-gray-500">{categoryInfo.name} • {formatDate(expense.date)}</p>
-                          {expense.description && (
-                            <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
-                          )}
+                        <div className="flex items-center">
+                          <div className="text-right mr-4">
+                            <div className="text-xl font-bold text-gray-900">{formatCurrency(expense.amount)}</div>
+                          </div>
+                          <button
+                            onClick={() => deleteExpense(expense.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                          >
+                            🗑️
+                          </button>
                         </div>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="text-right mr-4">
-                          <div className="text-xl font-bold text-gray-900">{formatCurrency(expense.amount)}</div>
-                        </div>
-                        <button
-                          onClick={() => deleteExpense(expense.id)}
-                          className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
-                        >
-                          🗑️
-                        </button>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            {monthlyChartData.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Aylık Trend</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={monthlyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="amount" stroke="#3B82F6" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {trendStats.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Kategori Trendleri</h3>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                    {trendStats.map((trend, index) => (
+                      <Line
+                        key={trend.category_id}
+                        type="monotone"
+                        dataKey="amount"
+                        data={trend.data}
+                        name={trend.category}
+                        stroke={trend.color}
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Dosya İçe Aktar</h3>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-900 mb-2">Desteklenen Formatlar:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• CSV: title, amount, category, description, date</li>
+                  <li>• Excel: title, amount, category, description, date</li>
+                  <li>• PDF: Fatura/makbuz okuma (deneysel)</li>
+                </ul>
+              </div>
+
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <div className="text-4xl mb-4">📁</div>
+                {isDragActive ? (
+                  <p className="text-blue-600">Dosyayı buraya bırakın...</p>
+                ) : (
+                  <div>
+                    <p className="text-gray-600 mb-2">Dosyayı sürükleyin veya tıklayın</p>
+                    <p className="text-sm text-gray-500">CSV, Excel, PDF desteklenir</p>
+                  </div>
+                )}
+              </div>
+
+              {uploadStatus && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm">{uploadStatus}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="w-full px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Expense Modal */}
       {showAddForm && (
