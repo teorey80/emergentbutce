@@ -95,6 +95,14 @@ function App() {
     fetchAllStats();
     // Initialize filtered expenses
     setFilteredExpenses(expenses);
+    
+    // Check mobile on resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Update filtered expenses when expenses change
