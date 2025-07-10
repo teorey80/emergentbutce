@@ -794,6 +794,9 @@ async def test_filter_expenses(min_amount: Optional[float] = None, max_amount: O
         "sample": expenses[:3] if expenses else []
     }
 
+# Include the router in the main app
+app.include_router(api_router)
+
 # Get filtered expenses with advanced search
 @api_router.get("/expenses/filter")
 async def filter_expenses(
