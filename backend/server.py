@@ -285,7 +285,84 @@ async def get_trend_stats():
     
     return formatted_trends
 
-# File upload endpoint for CSV
+# Smart categorization system
+SMART_CATEGORIES = {
+    "food": [
+        "migros", "bim", "a101", "şok", "carrefour", "metro", "real", "kipa", "lidl",
+        "market", "bakkal", "manav", "kasap", "fırın", "pastane", "cafe", "restaurant",
+        "restoran", "lokanta", "pizzeria", "döner", "kebap", "burger", "mcdonald",
+        "burger king", "kfc", "dominos", "pizza hut", "starbucks", "kahve dünyası",
+        "yemek", "food", "gıda", "et", "tavuk", "balık", "sebze", "meyve"
+    ],
+    "transport": [
+        "benzin", "petrol", "shell", "bp", "total", "opet", "petlas", "oto",
+        "taksi", "uber", "bitaksi", "otobüs", "metro", "dolmuş", "minibüs",
+        "uçak", "pegasus", "turkish airlines", "onur air", "tren", "tcdd",
+        "yakıt", "akaryakıt", "garaj", "otopark", "köprü", "geçiş", "hgs", "ogs"
+    ],
+    "shopping": [
+        "zara", "h&m", "mango", "koton", "lc waikiki", "defacto", "colin's",
+        "mavi", "beymen", "vakko", "boyner", "teknosa", "vatan", "media markt",
+        "btech", "apple store", "samsung", "amazon", "trendyol", "hepsiburada",
+        "gittigidiyor", "n11", "sahibinden", "dolap", "modanisa", "ayakkabı",
+        "giyim", "kıyafet", "elektronik", "telefon", "bilgisayar", "laptop"
+    ],
+    "entertainment": [
+        "sinema", "cinema", "cinemax", "cinemaximum", "akmerkez", "forum",
+        "netflix", "spotify", "apple music", "youtube", "gaming", "playstation",
+        "xbox", "steam", "google play", "app store", "tiyatro", "konser",
+        "müze", "aquarium", "lunapark", "bowling", "bilardo", "karaoke",
+        "eğlence", "oyun", "film", "müzik", "kitap", "dergi"
+    ],
+    "health": [
+        "hastane", "hospital", "doktor", "doctor", "eczane", "pharmacy", "sağlık",
+        "tıp", "medical", "diş", "dental", "göz", "eye", "kulak", "ear",
+        "jinekolog", "üroloji", "kardiyoloji", "nöroloji", "psikiyatri",
+        "fizik tedavi", "laboratuvar", "röntgen", "mri", "ameliyat", "ilaç",
+        "vitamin", "medikal", "klinik", "sağlık ocağı"
+    ],
+    "education": [
+        "okul", "school", "üniversite", "university", "kurs", "course", "eğitim",
+        "education", "kitap", "book", "kırtasiye", "kalem", "defter", "çanta",
+        "udemy", "coursera", "khan academy", "özel ders", "dershane", "etüt",
+        "sınav", "test", "ödev", "proje", "akademi", "enstitü", "kolej"
+    ],
+    "bills": [
+        "elektrik", "electric", "tedaş", "ayedaş", "bedaş", "su", "water", "aski",
+        "doğalgaz", "gas", "igdaş", "internet", "ttnet", "turkcell", "vodafone",
+        "türk telekom", "telefon", "phone", "fatura", "bill", "abonelik",
+        "netflix", "spotify", "apple", "google", "microsoft", "amazon prime",
+        "aidat", "apartman", "site", "yönetim", "kira", "rent"
+    ]
+}
+
+def smart_categorize(title, description=""):
+    """Automatically categorize expense based on title and description"""
+    text = f"{title} {description}".lower()
+    
+    # Score each category
+    category_scores = {}
+    for category, keywords in SMART_CATEGORIES.items():
+        score = 0
+        for keyword in keywords:
+            if keyword in text:
+                # Give higher score for exact matches
+                if keyword == text.strip():
+                    score += 10
+                # Give medium score for word matches
+                elif f" {keyword} " in f" {text} ":
+                    score += 5
+                # Give lower score for partial matches
+                elif keyword in text:
+                    score += 1
+        category_scores[category] = score
+    
+    # Return category with highest score, or 'other' if no match
+    if max(category_scores.values()) > 0:
+        return max(category_scores, key=category_scores.get)
+    return "other"
+
+# Enhanced file upload endpoint for CSV
 @api_router.post("/upload/csv")
 async def upload_csv(file: UploadFile = File(...)):
     if not file.filename.endswith('.csv'):
@@ -293,34 +370,100 @@ async def upload_csv(file: UploadFile = File(...)):
     
     try:
         contents = await file.read()
-        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        # Try different encodings
+        try:
+            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        except UnicodeDecodeError:
+            try:
+                df = pd.read_csv(io.StringIO(contents.decode('iso-8859-9')))  # Turkish encoding
+            except UnicodeDecodeError:
+                df = pd.read_csv(io.StringIO(contents.decode('windows-1254')))  # Windows Turkish
         
-        # Expected columns: title, amount, category, description, date
-        required_columns = ['title', 'amount', 'category']
-        missing_columns = [col for col in required_columns if col not in df.columns]
+        # Check if it's a bank statement format
+        # Common CSV formats: date, description, amount OR transaction_date, merchant, amount
+        possible_columns = {
+            'title': ['description', 'merchant', 'title', 'açıklama', 'işlem açıklaması', 'merchant_name'],
+            'amount': ['amount', 'tutar', 'miktar', 'toplam', 'total', 'transaction_amount'],
+            'date': ['date', 'tarih', 'transaction_date', 'işlem tarihi', 'transaction_time'],
+            'category': ['category', 'kategori', 'type', 'tip'],
+            'description': ['description', 'açıklama', 'detay', 'details', 'memo']
+        }
         
-        if missing_columns:
-            raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_columns}")
+        # Map columns automatically
+        column_mapping = {}
+        for standard_col, possible_names in possible_columns.items():
+            for col in df.columns:
+                if col.lower() in [name.lower() for name in possible_names]:
+                    column_mapping[standard_col] = col
+                    break
         
-        # Validate categories
-        valid_categories = [cat["id"] for cat in EXPENSE_CATEGORIES]
-        invalid_categories = df[~df['category'].isin(valid_categories)]['category'].unique()
-        
-        if len(invalid_categories) > 0:
-            raise HTTPException(status_code=400, detail=f"Invalid categories found: {invalid_categories.tolist()}")
+        # Ensure we have at least title and amount
+        if 'title' not in column_mapping or 'amount' not in column_mapping:
+            # If no mapping found, assume first few columns are title, amount, etc.
+            if len(df.columns) >= 2:
+                column_mapping['title'] = df.columns[0]
+                column_mapping['amount'] = df.columns[1]
+                if len(df.columns) >= 3:
+                    column_mapping['date'] = df.columns[2]
+            else:
+                raise HTTPException(status_code=400, detail="Could not identify title and amount columns")
         
         # Process and insert expenses
         expenses_added = 0
         errors = []
+        categories_assigned = {}
         
         for index, row in df.iterrows():
             try:
+                # Extract title
+                title = str(row[column_mapping['title']]).strip()
+                if pd.isna(row[column_mapping['title']]) or not title:
+                    continue
+                
+                # Extract amount (handle negative values for expenses)
+                amount_str = str(row[column_mapping['amount']]).replace(',', '.').replace(' ', '')
+                # Remove currency symbols
+                amount_str = ''.join(char for char in amount_str if char.isdigit() or char in '.-')
+                amount = abs(float(amount_str))  # Take absolute value for expenses
+                
+                if amount <= 0:
+                    continue
+                
+                # Extract description
+                description = ""
+                if 'description' in column_mapping and pd.notna(row[column_mapping['description']]):
+                    description = str(row[column_mapping['description']]).strip()
+                
+                # Extract date
+                expense_date = date.today().isoformat()
+                if 'date' in column_mapping and pd.notna(row[column_mapping['date']]):
+                    try:
+                        parsed_date = pd.to_datetime(row[column_mapping['date']])
+                        expense_date = parsed_date.date().isoformat()
+                    except:
+                        pass
+                
+                # Smart categorization
+                if 'category' in column_mapping and pd.notna(row[column_mapping['category']]):
+                    # Use provided category if valid
+                    provided_category = str(row[column_mapping['category']]).lower()
+                    valid_categories = [cat["id"] for cat in EXPENSE_CATEGORIES]
+                    category = provided_category if provided_category in valid_categories else smart_categorize(title, description)
+                else:
+                    # Auto-categorize
+                    category = smart_categorize(title, description)
+                
+                # Track categorization
+                if category not in categories_assigned:
+                    categories_assigned[category] = []
+                categories_assigned[category].append(title)
+                
                 expense_data = {
-                    'title': str(row['title']),
-                    'amount': float(row['amount']),
-                    'category': str(row['category']),
-                    'description': str(row.get('description', '')) if pd.notna(row.get('description')) else None,
-                    'date': str(row.get('date', date.today().isoformat())) if pd.notna(row.get('date')) else date.today().isoformat()
+                    'title': title,
+                    'amount': amount,
+                    'category': category,
+                    'description': description if description else None,
+                    'date': expense_date
                 }
                 
                 expense_obj = Expense(**expense_data)
@@ -337,13 +480,15 @@ async def upload_csv(file: UploadFile = File(...)):
             "message": f"Successfully imported {expenses_added} expenses",
             "total_rows": len(df),
             "imported": expenses_added,
-            "errors": errors
+            "errors": errors,
+            "auto_categorization": categories_assigned,
+            "detected_columns": column_mapping
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
 
-# File upload endpoint for Excel
+# Enhanced file upload endpoint for Excel
 @api_router.post("/upload/excel")
 async def upload_excel(file: UploadFile = File(...)):
     if not file.filename.endswith(('.xlsx', '.xls')):
@@ -351,34 +496,99 @@ async def upload_excel(file: UploadFile = File(...)):
     
     try:
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
+        # Try to read Excel file
+        try:
+            df = pd.read_excel(io.BytesIO(contents), engine='openpyxl')
+        except:
+            df = pd.read_excel(io.BytesIO(contents))
         
-        # Expected columns: title, amount, category, description, date
-        required_columns = ['title', 'amount', 'category']
-        missing_columns = [col for col in required_columns if col not in df.columns]
+        # Apply same logic as CSV
+        possible_columns = {
+            'title': ['description', 'merchant', 'title', 'açıklama', 'işlem açıklaması', 'merchant_name'],
+            'amount': ['amount', 'tutar', 'miktar', 'toplam', 'total', 'transaction_amount'],
+            'date': ['date', 'tarih', 'transaction_date', 'işlem tarihi', 'transaction_time'],
+            'category': ['category', 'kategori', 'type', 'tip'],
+            'description': ['description', 'açıklama', 'detay', 'details', 'memo']
+        }
         
-        if missing_columns:
-            raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_columns}")
+        # Map columns automatically
+        column_mapping = {}
+        for standard_col, possible_names in possible_columns.items():
+            for col in df.columns:
+                if col.lower() in [name.lower() for name in possible_names]:
+                    column_mapping[standard_col] = col
+                    break
         
-        # Validate categories
-        valid_categories = [cat["id"] for cat in EXPENSE_CATEGORIES]
-        invalid_categories = df[~df['category'].isin(valid_categories)]['category'].unique()
-        
-        if len(invalid_categories) > 0:
-            raise HTTPException(status_code=400, detail=f"Invalid categories found: {invalid_categories.tolist()}")
+        # Ensure we have at least title and amount
+        if 'title' not in column_mapping or 'amount' not in column_mapping:
+            if len(df.columns) >= 2:
+                column_mapping['title'] = df.columns[0]
+                column_mapping['amount'] = df.columns[1]
+                if len(df.columns) >= 3:
+                    column_mapping['date'] = df.columns[2]
+            else:
+                raise HTTPException(status_code=400, detail="Could not identify title and amount columns")
         
         # Process and insert expenses
         expenses_added = 0
         errors = []
+        categories_assigned = {}
         
         for index, row in df.iterrows():
             try:
+                # Extract title
+                title = str(row[column_mapping['title']]).strip()
+                if pd.isna(row[column_mapping['title']]) or not title:
+                    continue
+                
+                # Extract amount (handle negative values for expenses)
+                amount_val = row[column_mapping['amount']]
+                if pd.isna(amount_val):
+                    continue
+                    
+                if isinstance(amount_val, str):
+                    amount_str = amount_val.replace(',', '.').replace(' ', '')
+                    amount_str = ''.join(char for char in amount_str if char.isdigit() or char in '.-')
+                    amount = abs(float(amount_str))
+                else:
+                    amount = abs(float(amount_val))
+                
+                if amount <= 0:
+                    continue
+                
+                # Extract description
+                description = ""
+                if 'description' in column_mapping and pd.notna(row[column_mapping['description']]):
+                    description = str(row[column_mapping['description']]).strip()
+                
+                # Extract date
+                expense_date = date.today().isoformat()
+                if 'date' in column_mapping and pd.notna(row[column_mapping['date']]):
+                    try:
+                        parsed_date = pd.to_datetime(row[column_mapping['date']])
+                        expense_date = parsed_date.date().isoformat()
+                    except:
+                        pass
+                
+                # Smart categorization
+                if 'category' in column_mapping and pd.notna(row[column_mapping['category']]):
+                    provided_category = str(row[column_mapping['category']]).lower()
+                    valid_categories = [cat["id"] for cat in EXPENSE_CATEGORIES]
+                    category = provided_category if provided_category in valid_categories else smart_categorize(title, description)
+                else:
+                    category = smart_categorize(title, description)
+                
+                # Track categorization
+                if category not in categories_assigned:
+                    categories_assigned[category] = []
+                categories_assigned[category].append(title)
+                
                 expense_data = {
-                    'title': str(row['title']),
-                    'amount': float(row['amount']),
-                    'category': str(row['category']),
-                    'description': str(row.get('description', '')) if pd.notna(row.get('description')) else None,
-                    'date': str(row.get('date', date.today().isoformat())) if pd.notna(row.get('date')) else date.today().isoformat()
+                    'title': title,
+                    'amount': amount,
+                    'category': category,
+                    'description': description if description else None,
+                    'date': expense_date
                 }
                 
                 expense_obj = Expense(**expense_data)
@@ -395,13 +605,15 @@ async def upload_excel(file: UploadFile = File(...)):
             "message": f"Successfully imported {expenses_added} expenses",
             "total_rows": len(df),
             "imported": expenses_added,
-            "errors": errors
+            "errors": errors,
+            "auto_categorization": categories_assigned,
+            "detected_columns": column_mapping
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing Excel: {str(e)}")
 
-# File upload endpoint for PDF
+# Enhanced PDF processing with smart extraction
 @api_router.post("/upload/pdf")
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
@@ -415,47 +627,78 @@ async def upload_pdf(file: UploadFile = File(...)):
         for page in pdf_reader.pages:
             text += page.extract_text()
         
-        # Simple expense extraction (this can be improved with more sophisticated parsing)
-        # Look for patterns like "Amount: 123.45" or "Total: 123.45"
-        amount_patterns = [
-            r'(?:Amount|Total|Toplam|Tutar):\s*(\d+[.,]\d{2})',
-            r'(\d+[.,]\d{2})\s*(?:TL|₺|EUR|USD)',
-            r'(\d+[.,]\d{2})'
-        ]
+        # Enhanced expense extraction for Turkish bank statements
+        extracted_expenses = []
         
-        extracted_amounts = []
-        for pattern in amount_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches:
+        # Split text into lines for better processing
+        lines = text.split('\n')
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Look for patterns with amount and merchant
+            # Pattern: Date Merchant Amount
+            amount_pattern = r'(\d+[.,]\d{2})\s*(?:TL|₺|EUR|USD)?'
+            
+            amounts = re.findall(amount_pattern, line)
+            if amounts:
+                for amount_str in amounts:
+                    try:
+                        amount = float(amount_str.replace(',', '.'))
+                        if amount > 0:
+                            # Extract potential merchant name (text before amount)
+                            before_amount = line.split(amount_str)[0].strip()
+                            
+                            # Clean up merchant name
+                            merchant = re.sub(r'^\d+/\d+/\d+', '', before_amount).strip()  # Remove dates
+                            merchant = re.sub(r'^\d+\.\d+\.\d+', '', merchant).strip()
+                            merchant = re.sub(r'[*]+', '', merchant).strip()  # Remove asterisks
+                            
+                            if len(merchant) > 3 and len(merchant) < 100:
+                                # Smart categorization
+                                category = smart_categorize(merchant)
+                                
+                                extracted_expenses.append({
+                                    'title': merchant,
+                                    'amount': amount,
+                                    'category': category,
+                                    'description': f"PDF'den çıkarılan: {file.filename}",
+                                    'date': date.today().isoformat()
+                                })
+                    except ValueError:
+                        continue
+        
+        # If auto-add is requested, add expenses
+        expenses_added = 0
+        if extracted_expenses:
+            categories_assigned = {}
+            for expense_data in extracted_expenses[:20]:  # Limit to 20 expenses
                 try:
-                    amount = float(match.replace(',', '.'))
-                    if amount > 0:
-                        extracted_amounts.append(amount)
-                except ValueError:
+                    expense_obj = Expense(**expense_data)
+                    expense_doc = expense_obj.dict()
+                    expense_doc['created_at'] = expense_obj.created_at.isoformat()
+                    
+                    await db.expenses.insert_one(expense_doc)
+                    expenses_added += 1
+                    
+                    # Track categorization
+                    category = expense_data['category']
+                    if category not in categories_assigned:
+                        categories_assigned[category] = []
+                    categories_assigned[category].append(expense_data['title'])
+                    
+                except Exception as e:
                     continue
         
-        # Extract potential titles (words before amounts)
-        title_patterns = [
-            r'([A-Za-zğüşıöçĞÜŞİÖÇ\s]+)\s*(?:Amount|Total|Toplam|Tutar):\s*\d+[.,]\d{2}',
-            r'([A-Za-zğüşıöçĞÜŞİÖÇ\s]+)\s*\d+[.,]\d{2}\s*(?:TL|₺)'
-        ]
-        
-        extracted_titles = []
-        for pattern in title_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches:
-                title = match.strip()
-                if len(title) > 3 and len(title) < 50:
-                    extracted_titles.append(title)
-        
-        # Return extracted data for user to review
         return {
-            "message": "PDF processed successfully",
+            "message": f"PDF processed successfully. {expenses_added} expenses added automatically.",
             "filename": file.filename,
-            "extracted_text": text[:1000],  # First 1000 characters
-            "potential_amounts": extracted_amounts[:10],  # First 10 amounts
-            "potential_titles": extracted_titles[:10],  # First 10 titles
-            "suggestion": "Review the extracted data and manually add expenses as needed"
+            "extracted_expenses": len(extracted_expenses),
+            "auto_added": expenses_added,
+            "auto_categorization": categories_assigned if expenses_added > 0 else {},
+            "sample_extractions": extracted_expenses[:5] if extracted_expenses else []
         }
         
     except Exception as e:
