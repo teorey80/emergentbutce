@@ -97,9 +97,27 @@ function App() {
     }
   };
 
+  // Fetch smart insights
+  const fetchSmartFeatures = async () => {
+    try {
+      const [insightsResponse, predictionsResponse, limitsResponse] = await Promise.all([
+        axios.get(`${API}/expenses/insights`),
+        axios.get(`${API}/expenses/predictions`),
+        axios.get(`${API}/expenses/limits/check`)
+      ]);
+      
+      setInsights(insightsResponse.data.insights || []);
+      setPredictions(predictionsResponse.data.predictions || {});
+      setLimitWarnings(limitsResponse.data.warnings || []);
+    } catch (error) {
+      console.error('Error fetching smart features:', error);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
     fetchAllStats();
+    fetchSmartFeatures();
     // Initialize filtered expenses
     setFilteredExpenses(expenses);
     
