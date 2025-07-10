@@ -524,62 +524,253 @@ function App() {
 
         {/* Expenses Tab */}
         {activeTab === 'expenses' && (
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Harcamalar</h3>
-            </div>
-            
-            {expenses.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="text-6xl mb-4">📊</div>
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Henüz harcama bulunmuyor</h3>
-                <p className="text-gray-500 mb-6">İlk harcamanızı ekleyerek başlayın</p>
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Harcama Ekle
-                </button>
+          <div>
+            {/* Filter Section */}
+            <div className="bg-white rounded-lg shadow-sm mb-6">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-gray-900">Harcamalar</h3>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      showFilters 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    🔍 {showFilters ? 'Filtreleri Gizle' : 'Filtrele & Ara'}
+                  </button>
+                  {showFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium transition-colors"
+                    >
+                      ✖️ Temizle
+                    </button>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {expenses.map((expense) => {
-                  const categoryInfo = getCategoryInfo(expense.category);
-                  return (
-                    <div key={expense.id} className="p-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
-                            style={{ backgroundColor: categoryInfo.color }}
-                          >
-                            {categoryInfo.icon}
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-medium text-gray-900">{expense.title}</h4>
-                            <p className="text-sm text-gray-500">{categoryInfo.name} • {formatDate(expense.date)}</p>
-                            {expense.description && (
-                              <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
-                            )}
-                          </div>
+              
+              {showFilters && (
+                <div className="p-6 bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Search */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        🔎 Metin Arama
+                      </label>
+                      <input
+                        type="text"
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                        placeholder="Harcama adı veya açıklama ara..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {/* Category Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        📋 Kategori
+                      </label>
+                      <select
+                        value={filters.category}
+                        onChange={(e) => handleFilterChange('category', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="all">Tüm Kategoriler</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.icon} {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Amount Range */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        💰 Tutar Aralığı
+                      </label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="number"
+                          value={filters.minAmount}
+                          onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                          placeholder="Min ₺"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="number"
+                          value={filters.maxAmount}
+                          onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                          placeholder="Max ₺"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Date Range */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        📅 Başlangıç Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        📅 Bitiş Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {/* Quick Filters */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ⚡ Hızlı Filtreler
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            const today = new Date().toISOString().split('T')[0];
+                            handleFilterChange('startDate', today);
+                            handleFilterChange('endDate', today);
+                          }}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200"
+                        >
+                          Bugün
+                        </button>
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            handleFilterChange('startDate', weekAgo.toISOString().split('T')[0]);
+                            handleFilterChange('endDate', today.toISOString().split('T')[0]);
+                          }}
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200"
+                        >
+                          Son 7 Gün
+                        </button>
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                            handleFilterChange('startDate', monthAgo.toISOString().split('T')[0]);
+                            handleFilterChange('endDate', today.toISOString().split('T')[0]);
+                          }}
+                          className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200"
+                        >
+                          Son 30 Gün
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Filter Summary */}
+                  {filterSummary && (
+                    <div className="mt-6 p-4 bg-white rounded-lg border">
+                      <h4 className="font-medium text-gray-900 mb-3">📊 Filtreleme Sonuçları</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">{formatCurrency(filterSummary.total_amount)}</div>
+                          <div className="text-sm text-gray-500">Toplam Tutar</div>
                         </div>
-                        <div className="flex items-center">
-                          <div className="text-right mr-4">
-                            <div className="text-xl font-bold text-gray-900">{formatCurrency(expense.amount)}</div>
-                          </div>
-                          <button
-                            onClick={() => deleteExpense(expense.id)}
-                            className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
-                          >
-                            🗑️
-                          </button>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">{filterSummary.total_count}</div>
+                          <div className="text-sm text-gray-500">Harcama Sayısı</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-600">{formatCurrency(filterSummary.average_per_day)}</div>
+                          <div className="text-sm text-gray-500">Günlük Ortalama</div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Expenses List */}
+            <div className="bg-white rounded-lg shadow-sm">
+              {filteredExpenses.length === 0 ? (
+                <div className="p-12 text-center">
+                  {showFilters ? (
+                    <>
+                      <div className="text-6xl mb-4">🔍</div>
+                      <h3 className="text-xl font-medium text-gray-900 mb-2">Filtreye uygun harcama bulunamadı</h3>
+                      <p className="text-gray-500 mb-6">Farklı kriterler deneyin veya filtreleri temizleyin</p>
+                      <button
+                        onClick={clearFilters}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Filtreleri Temizle
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-6xl mb-4">📊</div>
+                      <h3 className="text-xl font-medium text-gray-900 mb-2">Henüz harcama bulunmuyor</h3>
+                      <p className="text-gray-500 mb-6">İlk harcamanızı ekleyerek başlayın</p>
+                      <button
+                        onClick={() => setShowAddForm(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Harcama Ekle
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {filteredExpenses.map((expense) => {
+                    const categoryInfo = getCategoryInfo(expense.category);
+                    return (
+                      <div key={expense.id} className="p-6 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
+                              style={{ backgroundColor: categoryInfo.color }}
+                            >
+                              {categoryInfo.icon}
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-medium text-gray-900">{expense.title}</h4>
+                              <p className="text-sm text-gray-500">{categoryInfo.name} • {formatDate(expense.date)}</p>
+                              {expense.description && (
+                                <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="text-right mr-4">
+                              <div className="text-xl font-bold text-gray-900">{formatCurrency(expense.amount)}</div>
+                            </div>
+                            <button
+                              onClick={() => deleteExpense(expense.id)}
+                              className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
