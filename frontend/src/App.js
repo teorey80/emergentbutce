@@ -443,6 +443,47 @@ function App() {
     return new Date(dateString).toLocaleDateString('tr-TR');
   };
 
+  // Handle interactive dashboard clicks
+  const handleMonthClick = async (data) => {
+    if (data && data.activeLabel) {
+      setSelectedMonth(data.activeLabel);
+      setSelectedCategory(null); // Clear category selection
+      
+      // Find the month data and filter expenses
+      const monthData = monthlyStats.find(m => m.month === data.activeLabel);
+      if (monthData) {
+        // Filter expenses by month
+        const monthExpenses = expenses.filter(expense => {
+          const expenseDate = new Date(expense.date);
+          const expenseMonth = expenseDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+          return expenseMonth === data.activeLabel;
+        });
+        setInteractiveExpenses(monthExpenses);
+      }
+    }
+  };
+
+  const handleCategoryClick = (data) => {
+    if (data && data.name) {
+      setSelectedCategory(data.name);
+      setSelectedMonth(null); // Clear month selection
+      
+      // Find category ID from name
+      const categoryInfo = categories.find(cat => cat.name === data.name);
+      if (categoryInfo) {
+        // Filter expenses by category
+        const categoryExpenses = expenses.filter(expense => expense.category === categoryInfo.id);
+        setInteractiveExpenses(categoryExpenses);
+      }
+    }
+  };
+
+  const clearInteractiveSelection = () => {
+    setSelectedMonth(null);
+    setSelectedCategory(null);
+    setInteractiveExpenses([]);
+  };
+
   // Prepare chart data
   const pieChartData = Object.entries(stats.category_stats).map(([categoryId, stat]) => ({
     name: stat.name,
