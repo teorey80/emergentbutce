@@ -86,6 +86,11 @@ async def create_expense(expense_data: ExpenseCreate):
         raise HTTPException(status_code=400, detail="Invalid category")
     
     expense_dict = expense_data.dict()
+    
+    # Set default date if not provided
+    if expense_dict.get('date') is None:
+        expense_dict['date'] = date.today()
+        
     expense_obj = Expense(**expense_dict)
     
     # Convert date to string for MongoDB
