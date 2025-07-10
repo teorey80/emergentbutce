@@ -159,26 +159,53 @@ function App() {
   const applyFilters = async () => {
     try {
       setIsFiltering(true);
-      const params = new URLSearchParams();
       
-      if (filters.search) params.append('search', filters.search);
-      if (filters.category !== 'all') params.append('category', filters.category);
-      if (filters.minAmount) params.append('min_amount', filters.minAmount);
-      if (filters.maxAmount) params.append('max_amount', filters.maxAmount);
-      if (filters.startDate) params.append('start_date', filters.startDate);
-      if (filters.endDate) params.append('end_date', filters.endDate);
-
-      const response = await axios.get(`${API}/expenses/filter?${params}`);
-      setFilteredExpenses(response.data);
-
-      // Get summary for filtered data
-      const summaryParams = new URLSearchParams();
-      if (filters.category !== 'all') summaryParams.append('category', filters.category);
-      if (filters.startDate) summaryParams.append('start_date', filters.startDate);
-      if (filters.endDate) summaryParams.append('end_date', filters.endDate);
-
-      const summaryResponse = await axios.get(`${API}/expenses/summary?${summaryParams}`);
-      setFilterSummary(summaryResponse.data);
+      // Client-side filtering as backup
+      let filtered = [...expenses];
+      
+      // Text search
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        filtered = filtered.filter(expense => 
+          expense.title.toLowerCase().includes(searchTerm) ||
+          (expense.description && expense.description.toLowerCase().includes(searchTerm))
+        );
+      }
+      
+      // Category filter
+      if (filters.category !== 'all') {
+        filtered = filtered.filter(expense => expense.category === filters.category);
+      }
+      
+      // Amount range filter
+      if (filters.minAmount) {
+        filtered = filtered.filter(expense => expense.amount >= parseFloat(filters.minAmount));
+      }
+      if (filters.maxAmount) {
+        filtered = filtered.filter(expense => expense.amount <= parseFloat(filters.maxAmount));
+      }
+      
+      // Date range filter
+      if (filters.startDate) {
+        filtered = filtered.filter(expense => expense.date >= filters.startDate);
+      }
+      if (filters.endDate) {
+        filtered = filtered.filter(expense => expense.date <= filters.endDate);
+      }
+      
+      setFilteredExpenses(filtered);
+      
+      // Calculate summary
+      const total_amount = filtered.reduce((sum, exp) => sum + exp.amount, 0);
+      const total_count = filtered.length;
+      const avg_per_day = filters.startDate && filters.endDate ? 
+        total_amount / Math.max(1, Math.ceil((new Date(filters.endDate) - new Date(filters.startDate)) / (1000 * 60 * 60 * 24))) : 0;
+      
+      setFilterSummary({
+        total_amount,
+        total_count,
+        average_per_day: avg_per_day
+      });
 
     } catch (error) {
       console.error('Error applying filters:', error);
