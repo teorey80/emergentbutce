@@ -31,6 +31,7 @@ function App() {
   });
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [filterSummary, setFilterSummary] = useState(null);
+  const [isFiltering, setIsFiltering] = useState(false);
   
   // Mobile states
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
