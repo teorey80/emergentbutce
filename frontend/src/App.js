@@ -783,28 +783,60 @@ function App() {
                         outerRadius={isMobile ? 60 : 80}
                         fill="#8884d8"
                         dataKey="value"
+                        onClick={handleCategoryClick}
+                        style={{ cursor: 'pointer' }}
                       >
                         {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.color}
+                            style={{ cursor: 'pointer' }}
+                          />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value) => formatCurrency(value)} />
                     </PieChart>
                   </ResponsiveContainer>
+                  {selectedCategory && (
+                    <div className="mt-2 text-center">
+                      <p className="text-sm text-blue-600">📊 Seçili: {selectedCategory}</p>
+                      <button 
+                        onClick={clearInteractiveSelection}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Temizle
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {monthlyChartData.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm p-6">
                     <h3 className={`font-semibold text-gray-900 mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>Aylık Harcamalar</h3>
                     <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
-                      <BarChart data={monthlyChartData}>
+                      <BarChart data={monthlyChartData} onClick={handleMonthClick}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" fontSize={isMobile ? 10 : 12} />
                         <YAxis fontSize={isMobile ? 10 : 12} />
                         <Tooltip formatter={(value) => formatCurrency(value)} />
-                        <Bar dataKey="amount" fill="#3B82F6" />
+                        <Bar 
+                          dataKey="amount" 
+                          fill="#3B82F6" 
+                          style={{ cursor: 'pointer' }}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
+                    {selectedMonth && (
+                      <div className="mt-2 text-center">
+                        <p className="text-sm text-blue-600">📅 Seçili: {selectedMonth}</p>
+                        <button 
+                          onClick={clearInteractiveSelection}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Temizle
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
