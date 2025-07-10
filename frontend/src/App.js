@@ -500,6 +500,45 @@ function App() {
     setInteractiveExpenses([]);
   };
 
+  // Handle category editing
+  const handleCategoryEdit = (expenseId, currentCategory) => {
+    setEditingCategory(expenseId);
+  };
+
+  const handleCategoryUpdate = async (expenseId, newCategory) => {
+    try {
+      setUpdatingExpense(expenseId);
+      
+      const response = await axios.put(`${API}/expenses/${expenseId}/category`, {
+        category: newCategory
+      });
+
+      // Update local state
+      setExpenses(expenses.map(expense => 
+        expense.id === expenseId ? { ...expense, category: newCategory } : expense
+      ));
+      
+      setFilteredExpenses(filteredExpenses.map(expense => 
+        expense.id === expenseId ? { ...expense, category: newCategory } : expense
+      ));
+
+      setEditingCategory(null);
+      
+      // Refresh stats
+      fetchAllStats();
+      
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Kategori güncellenirken bir hata oluştu');
+    } finally {
+      setUpdatingExpense(null);
+    }
+  };
+
+  const cancelCategoryEdit = () => {
+    setEditingCategory(null);
+  };
+
   // Prepare chart data
   const pieChartData = Object.entries(stats.category_stats).map(([categoryId, stat]) => ({
     name: stat.name,
