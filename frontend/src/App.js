@@ -767,6 +767,65 @@ function App() {
               </div>
             )}
 
+            {/* Interactive Expenses Display */}
+            {interactiveExpenses.length > 0 && (
+              <div className="mb-8">
+                <div className="bg-white rounded-lg shadow-sm">
+                  <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 className={`font-semibold text-gray-900 ${isMobile ? 'text-lg' : 'text-xl'}`}>
+                      {selectedMonth && `📅 ${selectedMonth} Harcamaları`}
+                      {selectedCategory && `📊 ${selectedCategory} Harcamaları`}
+                    </h3>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm text-gray-500">
+                        {interactiveExpenses.length} harcama • {formatCurrency(interactiveExpenses.reduce((sum, exp) => sum + exp.amount, 0))}
+                      </span>
+                      <button
+                        onClick={clearInteractiveSelection}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        ✖️ Kapat
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                    {interactiveExpenses.map((expense) => {
+                      const categoryInfo = getCategoryInfo(expense.category);
+                      return (
+                        <div key={expense.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div 
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3 ${isMobile ? 'w-8 h-8 text-sm' : ''}`}
+                                style={{ backgroundColor: categoryInfo.color }}
+                              >
+                                {categoryInfo.icon}
+                              </div>
+                              <div>
+                                <h4 className={`font-medium text-gray-900 ${isMobile ? 'text-sm' : 'text-base'}`}>{expense.title}</h4>
+                                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                  {categoryInfo.name} • {formatDate(expense.date)}
+                                </p>
+                                {expense.description && (
+                                  <p className={`text-gray-600 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>{expense.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-bold text-gray-900 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+                                {formatCurrency(expense.amount)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Charts */}
             {pieChartData.length > 0 && (
               <div className={`grid gap-8 mb-8 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
