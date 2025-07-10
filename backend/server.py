@@ -142,6 +142,9 @@ async def update_expense(expense_id: str, expense_data: ExpenseUpdate):
     
     return Expense(**updated_expense)
 
+# Include the router in the main app
+app.include_router(api_router)
+
 # Delete expense
 @api_router.delete("/expenses/{expense_id}")
 async def delete_expense(expense_id: str):
