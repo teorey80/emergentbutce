@@ -767,8 +767,32 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
 
-# Include the router in the main app
-app.include_router(api_router)
+# Simple filter test endpoint
+@api_router.get("/test/filter")
+async def test_filter_expenses(min_amount: Optional[float] = None, max_amount: Optional[float] = None):
+    # Build simple query
+    query = {}
+    
+    if min_amount is not None or max_amount is not None:
+        amount_filter = {}
+        if min_amount is not None:
+            amount_filter["$gte"] = min_amount
+        if max_amount is not None:
+            amount_filter["$lte"] = max_amount
+        query["amount"] = amount_filter
+    
+    print(f"Test Query: {query}")
+    
+    # Execute query
+    expenses = await db.expenses.find(query).limit(10).to_list(10)
+    
+    print(f"Test Found: {len(expenses)} expenses")
+    
+    return {
+        "query": query,
+        "count": len(expenses),
+        "sample": expenses[:3] if expenses else []
+    }
 
 # Get filtered expenses with advanced search
 @api_router.get("/expenses/filter")
