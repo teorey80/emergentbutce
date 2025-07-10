@@ -43,7 +43,7 @@ class ExpenseCreate(BaseModel):
     amount: float
     category: str
     description: Optional[str] = None
-    date: date = Field(default_factory=lambda: date.today())
+    date: date = Field(default_factory=date.today)
 
 class Expense(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
