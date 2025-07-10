@@ -543,49 +543,51 @@ function App() {
         {activeTab === 'dashboard' && (
           <div>
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg mb-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center p-8">
+            <div className={`bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg mb-8 ${isMobile ? 'mobile-hero' : ''}`}>
+              <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} gap-8 items-center p-8`}>
                 <div>
-                  <h2 className="text-4xl font-bold mb-4">Harcamalarınızı Kontrol Edin</h2>
-                  <p className="text-xl mb-6">Günlük harcamalarınızı takip edin, kategorilere ayırın ve mali durumunuzu analiz edin.</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h2 className={`font-bold mb-4 ${isMobile ? 'text-2xl' : 'text-4xl'}`}>Harcamalarınızı Kontrol Edin</h2>
+                  <p className={`mb-6 ${isMobile ? 'text-base' : 'text-xl'}`}>Günlük harcamalarınızı takip edin, kategorilere ayırın ve mali durumunuzu analiz edin.</p>
+                  <div className={`grid grid-cols-2 gap-4 ${isMobile ? 'mobile-stats' : ''}`}>
                     <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                      <div className="text-2xl font-bold">{formatCurrency(stats.total_amount)}</div>
-                      <div className="text-sm opacity-90">Toplam Harcama</div>
+                      <div className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{formatCurrency(stats.total_amount)}</div>
+                      <div className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>Toplam Harcama</div>
                     </div>
                     <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                      <div className="text-2xl font-bold">{stats.expense_count}</div>
-                      <div className="text-sm opacity-90">Toplam İşlem</div>
+                      <div className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{stats.expense_count}</div>
+                      <div className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>Toplam İşlem</div>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-center">
-                  <img 
-                    src="https://images.pexels.com/photos/7789849/pexels-photo-7789849.jpeg" 
-                    alt="Financial Dashboard" 
-                    className="rounded-lg shadow-2xl max-w-md w-full"
-                  />
-                </div>
+                {!isMobile && (
+                  <div className="flex justify-center">
+                    <img 
+                      src="https://images.pexels.com/photos/7789849/pexels-photo-7789849.jpeg" 
+                      alt="Financial Dashboard" 
+                      className="rounded-lg shadow-2xl max-w-md w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Category Stats */}
             {Object.keys(stats.category_stats).length > 0 && (
               <div className="mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Kategori Dağılımı</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <h3 className={`font-bold text-gray-900 mb-6 ${isMobile ? 'text-xl' : 'text-2xl'}`}>Kategori Dağılımı</h3>
+                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
                   {Object.entries(stats.category_stats).map(([categoryId, stat]) => (
-                    <div key={categoryId} className="bg-white rounded-lg shadow-sm p-4 border">
+                    <div key={categoryId} className={`bg-white rounded-lg shadow-sm p-4 border ${isMobile ? 'mobile-card' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <span className="text-2xl mr-3">{stat.icon}</span>
+                          <span className={`mr-3 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{stat.icon}</span>
                           <div>
-                            <div className="font-medium text-gray-900">{stat.name}</div>
-                            <div className="text-sm text-gray-500">{stat.count} işlem</div>
+                            <div className={`font-medium text-gray-900 ${isMobile ? 'text-sm' : ''}`}>{stat.name}</div>
+                            <div className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>{stat.count} işlem</div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-gray-900">{formatCurrency(stat.total)}</div>
+                          <div className={`font-bold text-gray-900 ${isMobile ? 'text-sm' : ''}`}>{formatCurrency(stat.total)}</div>
                         </div>
                       </div>
                     </div>
@@ -596,10 +598,10 @@ function App() {
 
             {/* Charts */}
             {pieChartData.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div className={`grid gap-8 mb-8 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Kategori Dağılımı</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <h3 className={`font-semibold text-gray-900 mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>Kategori Dağılımı</h3>
+                  <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
                     <PieChart>
                       <Pie
                         data={pieChartData}
@@ -607,7 +609,7 @@ function App() {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={isMobile ? 60 : 80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -622,12 +624,12 @@ function App() {
 
                 {monthlyChartData.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Aylık Harcamalar</h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <h3 className={`font-semibold text-gray-900 mb-4 ${isMobile ? 'text-lg' : 'text-xl'}`}>Aylık Harcamalar</h3>
+                    <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
                       <BarChart data={monthlyChartData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
+                        <XAxis dataKey="name" fontSize={isMobile ? 10 : 12} />
+                        <YAxis fontSize={isMobile ? 10 : 12} />
                         <Tooltip formatter={(value) => formatCurrency(value)} />
                         <Bar dataKey="amount" fill="#3B82F6" />
                       </BarChart>
