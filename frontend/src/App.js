@@ -154,6 +154,7 @@ function App() {
   // Apply filters
   const applyFilters = async () => {
     try {
+      setIsFiltering(true);
       const params = new URLSearchParams();
       
       if (filters.search) params.append('search', filters.search);
@@ -177,6 +178,8 @@ function App() {
 
     } catch (error) {
       console.error('Error applying filters:', error);
+    } finally {
+      setIsFiltering(false);
     }
   };
 
@@ -192,14 +195,22 @@ function App() {
     });
     setFilteredExpenses(expenses);
     setFilterSummary(null);
+    setIsFiltering(false);
   };
 
-  // Apply filters when they change
+  // Manual filter trigger (for button click)
+  const handleApplyFilters = (e) => {
+    e.preventDefault();
+    applyFilters();
+  };
+
+  // Auto-apply filters with debounce (optional)
   useEffect(() => {
     if (showFilters) {
       const timeoutId = setTimeout(() => {
+        // Only auto-apply if user is not actively typing
         applyFilters();
-      }, 500); // Debounce
+      }, 1000); // Increased debounce time
       return () => clearTimeout(timeoutId);
     }
   }, [filters, showFilters]);
