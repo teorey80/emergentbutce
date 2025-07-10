@@ -829,6 +829,232 @@ async def get_expense_summary(
         }
     }
 
+# Smart expense limit tracking
+@api_router.post("/expenses/limits")
+async def set_expense_limit(limit_data: dict):
+    """Set monthly expense limits by category"""
+    # Store in database for future use
+    await db.expense_limits.insert_one({
+        "id": str(uuid.uuid4()),
+        "limits": limit_data,
+        "created_at": datetime.utcnow().isoformat()
+    })
+    return {"message": "Expense limits set successfully", "limits": limit_data}
+
+@api_router.get("/expenses/limits/check")
+async def check_expense_limits():
+    """Check if current month expenses exceed limits"""
+    # Get current month
+    now = datetime.utcnow()
+    month_start = now.replace(day=1).date().isoformat()
+    month_end = now.replace(day=31).date().isoformat() if now.month != 12 else now.replace(month=12, day=31).date().isoformat()
+    
+    # Get current month expenses
+    current_month_expenses = await db.expenses.find({
+        "date": {"$gte": month_start, "$lte": month_end}
+    }).to_list(1000)
+    
+    # Calculate current spending by category
+    current_spending = {}
+    for expense in current_month_expenses:
+        category = expense['category']
+        if category not in current_spending:
+            current_spending[category] = 0
+        current_spending[category] += expense['amount']
+    
+    # Get latest limits
+    latest_limits = await db.expense_limits.find().sort("created_at", -1).limit(1).to_list(1)
+    
+    warnings = []
+    if latest_limits:
+        limits = latest_limits[0]['limits']
+        for category, limit in limits.items():
+            current = current_spending.get(category, 0)
+            if current > limit:
+                category_info = next((cat for cat in EXPENSE_CATEGORIES if cat['id'] == category), None)
+                warnings.append({
+                    "category": category,
+                    "category_name": category_info['name'] if category_info else category,
+                    "icon": category_info['icon'] if category_info else '⚠️',
+                    "current": current,
+                    "limit": limit,
+                    "exceeded_by": current - limit,
+                    "percentage": (current / limit) * 100
+                })
+            elif current > limit * 0.8:  # 80% warning
+                category_info = next((cat for cat in EXPENSE_CATEGORIES if cat['id'] == category), None)
+                warnings.append({
+                    "category": category,
+                    "category_name": category_info['name'] if category_info else category,
+                    "icon": category_info['icon'] if category_info else '⚠️',
+                    "current": current,
+                    "limit": limit,
+                    "warning_type": "approaching_limit",
+                    "percentage": (current / limit) * 100
+                })
+    
+    return {
+        "current_spending": current_spending,
+        "warnings": warnings,
+        "month": f"{now.strftime('%B %Y')}",
+        "total_spent": sum(current_spending.values())
+    }
+
+# Expense predictions based on historical data
+@api_router.get("/expenses/predictions")
+async def get_expense_predictions():
+    """Predict next month expenses based on historical data"""
+    # Get last 3 months of data
+    now = datetime.utcnow()
+    three_months_ago = (now.replace(day=1) - timedelta(days=90)).date().isoformat()
+    
+    expenses = await db.expenses.find({
+        "date": {"$gte": three_months_ago}
+    }).to_list(1000)
+    
+    # Group by month and category
+    monthly_data = {}
+    for expense in expenses:
+        try:
+            expense_date = datetime.fromisoformat(expense['date'])
+            month_key = expense_date.strftime("%Y-%m")
+            category = expense['category']
+            
+            if month_key not in monthly_data:
+                monthly_data[month_key] = {}
+            if category not in monthly_data[month_key]:
+                monthly_data[month_key][category] = 0
+            
+            monthly_data[month_key][category] += expense['amount']
+        except:
+            continue
+    
+    # Calculate averages for predictions
+    predictions = {}
+    for category_id, category_info in [(cat['id'], cat) for cat in EXPENSE_CATEGORIES]:
+        category_totals = []
+        for month_data in monthly_data.values():
+            category_totals.append(month_data.get(category_id, 0))
+        
+        if category_totals:
+            avg_amount = sum(category_totals) / len(category_totals)
+            # Add 10% growth factor
+            predicted_amount = avg_amount * 1.1
+            
+            predictions[category_id] = {
+                "category_name": category_info['name'],
+                "icon": category_info['icon'],
+                "predicted_amount": round(predicted_amount, 2),
+                "historical_average": round(avg_amount, 2),
+                "confidence": min(len(category_totals) * 33.33, 100)  # Higher confidence with more data
+            }
+    
+    return {
+        "predictions": predictions,
+        "prediction_month": (now.replace(day=1) + timedelta(days=32)).strftime("%B %Y"),
+        "based_on_months": len(monthly_data)
+    }
+
+# Smart insights and recommendations
+@api_router.get("/expenses/insights")
+async def get_smart_insights():
+    """Generate smart insights about spending patterns"""
+    # Get last month's data
+    now = datetime.utcnow()
+    last_month = (now.replace(day=1) - timedelta(days=1))
+    last_month_start = last_month.replace(day=1).date().isoformat()
+    last_month_end = last_month.date().isoformat()
+    
+    # Get current month's data
+    current_month_start = now.replace(day=1).date().isoformat()
+    current_month_end = now.date().isoformat()
+    
+    # Fetch data
+    last_month_expenses = await db.expenses.find({
+        "date": {"$gte": last_month_start, "$lte": last_month_end}
+    }).to_list(1000)
+    
+    current_month_expenses = await db.expenses.find({
+        "date": {"$gte": current_month_start, "$lte": current_month_end}
+    }).to_list(1000)
+    
+    insights = []
+    
+    # Calculate totals
+    last_month_total = sum(exp['amount'] for exp in last_month_expenses)
+    current_month_total = sum(exp['amount'] for exp in current_month_expenses)
+    
+    # Progress comparison
+    days_in_current_month = now.day
+    days_in_last_month = (last_month.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    days_in_last_month = days_in_last_month.day
+    
+    projected_current_month = (current_month_total / days_in_current_month) * days_in_last_month
+    
+    if projected_current_month > last_month_total * 1.2:
+        insights.append({
+            "type": "warning",
+            "title": "⚠️ Yüksek Harcama Trendi",
+            "message": f"Bu ay geçen aya göre %{((projected_current_month - last_month_total) / last_month_total * 100):.0f} daha fazla harcama yapabilirsiniz.",
+            "suggestion": "Harcamalarınızı gözden geçirin ve gereksiz harcamaları azaltın."
+        })
+    elif projected_current_month < last_month_total * 0.8:
+        insights.append({
+            "type": "success",
+            "title": "✅ Harika İlerleme",
+            "message": f"Bu ay geçen aya göre %{((last_month_total - projected_current_month) / last_month_total * 100):.0f} daha az harcama yapıyorsunuz.",
+            "suggestion": "Bu tasarruf trendini sürdürün!"
+        })
+    
+    # Category analysis
+    current_categories = {}
+    for exp in current_month_expenses:
+        cat = exp['category']
+        current_categories[cat] = current_categories.get(cat, 0) + exp['amount']
+    
+    last_categories = {}
+    for exp in last_month_expenses:
+        cat = exp['category']
+        last_categories[cat] = last_categories.get(cat, 0) + exp['amount']
+    
+    # Find biggest spending category
+    if current_categories:
+        biggest_category = max(current_categories, key=current_categories.get)
+        category_info = next((cat for cat in EXPENSE_CATEGORIES if cat['id'] == biggest_category), None)
+        if category_info:
+            insights.append({
+                "type": "info",
+                "title": f"{category_info['icon']} En Çok Harcama: {category_info['name']}",
+                "message": f"Bu ay en çok {category_info['name']} kategorisinde {formatCurrency(current_categories[biggest_category])} harcadınız.",
+                "suggestion": f"{category_info['name']} harcamalarınızı optimize etmeyi düşünün."
+            })
+    
+    # Unusual spending pattern
+    for category, current_amount in current_categories.items():
+        last_amount = last_categories.get(category, 0)
+        if last_amount > 0 and current_amount > last_amount * 2:
+            category_info = next((cat for cat in EXPENSE_CATEGORIES if cat['id'] == category), None)
+            if category_info:
+                insights.append({
+                    "type": "warning",
+                    "title": f"📈 {category_info['name']} Harcamalarında Artış",
+                    "message": f"Bu kategoride geçen aya göre %{((current_amount - last_amount) / last_amount * 100):.0f} artış var.",
+                    "suggestion": f"{category_info['name']} harcamalarınızı kontrol edin."
+                })
+    
+    return {
+        "insights": insights,
+        "summary": {
+            "last_month_total": last_month_total,
+            "current_month_total": current_month_total,
+            "projected_total": projected_current_month,
+            "trend": "increasing" if projected_current_month > last_month_total else "decreasing"
+        }
+    }
+
+def formatCurrency(amount):
+    return f"₺{amount:,.2f}"
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
