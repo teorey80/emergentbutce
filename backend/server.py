@@ -43,7 +43,15 @@ class ExpenseCreate(BaseModel):
     amount: float
     category: str
     description: Optional[str] = None
-    date: date = Field(default_factory=date.today)
+    date: Optional[date] = None
+    
+    class Config:
+        arbitrary_types_allowed = True
+
+    def __init__(self, **data):
+        if 'date' not in data or data['date'] is None:
+            data['date'] = date.today()
+        super().__init__(**data)
 
 class Expense(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -53,6 +61,9 @@ class Expense(BaseModel):
     description: Optional[str] = None
     date: date
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Config:
+        arbitrary_types_allowed = True
 
 class ExpenseUpdate(BaseModel):
     title: Optional[str] = None
@@ -60,6 +71,9 @@ class ExpenseUpdate(BaseModel):
     category: Optional[str] = None
     description: Optional[str] = None
     date: Optional[date] = None
+    
+    class Config:
+        arbitrary_types_allowed = True
 
 # Root endpoint
 @api_router.get("/")
