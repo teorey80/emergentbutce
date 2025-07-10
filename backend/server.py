@@ -595,6 +595,22 @@ async def upload_excel(file: UploadFile = File(...)):
                 if pd.isna(row[column_mapping['title']]) or not title:
                     continue
                 
+                # Clean title - remove amounts, dates, and bonus/miles text
+                # Remove common patterns that indicate amounts or bonuses
+                title = re.sub(r'\d+[.,]\d{2}.*', '', title)  # Remove amounts at end
+                title = re.sub(r'.*mil.*', '', title, flags=re.IGNORECASE)  # Remove miles
+                title = re.sub(r'.*bonus.*', '', title, flags=re.IGNORECASE)  # Remove bonus
+                title = re.sub(r'.*puan.*', '', title, flags=re.IGNORECASE)  # Remove points
+                title = re.sub(r'\d+/\d+.*', '', title)  # Remove installment info
+                title = re.sub(r'\(\d+/\d+.*\)', '', title)  # Remove installment in parentheses
+                title = re.sub(r'^\d+[./]\d+[./]\d+', '', title)  # Remove dates at start
+                title = re.sub(r'\s+', ' ', title).strip()  # Clean extra spaces
+                
+                # Skip if title becomes too short or empty
+                if len(title) < 3:
+                    continue
+                    continue
+                
                 # Extract amount (handle negative values for expenses)
                 amount_val = row[column_mapping['amount']]
                 if pd.isna(amount_val):
