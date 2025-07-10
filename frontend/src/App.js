@@ -172,6 +172,70 @@ function App() {
       return () => clearTimeout(timeoutId);
     }
   }, [filters, showFilters]);
+  
+  // Mobile touch handlers
+  const handleTouchStart = (e) => {
+    setTouchEnd(0); // Reset touchEnd
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && activeTab === 'dashboard') {
+      setActiveTab('expenses');
+    } else if (isRightSwipe && activeTab === 'expenses') {
+      setActiveTab('dashboard');
+    } else if (isLeftSwipe && activeTab === 'expenses') {
+      setActiveTab('analytics');
+    } else if (isRightSwipe && activeTab === 'analytics') {
+      setActiveTab('expenses');
+    }
+  };
+
+  // Pull to refresh
+  const handlePullToRefresh = async () => {
+    setPullToRefresh(true);
+    await fetchExpenses();
+    await fetchAllStats();
+    setTimeout(() => setPullToRefresh(false), 1000);
+  };
+
+  // Quick actions
+  const quickActions = [
+    { id: 'today', label: '📅 Bugün', action: () => {
+      const today = new Date().toISOString().split('T')[0];
+      handleFilterChange('startDate', today);
+      handleFilterChange('endDate', today);
+      setShowFilters(true);
+    }},
+    { id: 'week', label: '📊 Bu Hafta', action: () => {
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      handleFilterChange('startDate', weekAgo.toISOString().split('T')[0]);
+      handleFilterChange('endDate', today.toISOString().split('T')[0]);
+      setShowFilters(true);
+    }},
+    { id: 'food', label: '🍽️ Yiyecek', action: () => {
+      handleFilterChange('category', 'food');
+      setShowFilters(true);
+    }},
+    { id: 'transport', label: '🚗 Ulaşım', action: () => {
+      handleFilterChange('category', 'transport');
+      setShowFilters(true);
+    }},
+    { id: 'shopping', label: '🛍️ Alışveriş', action: () => {
+      handleFilterChange('category', 'shopping');
+      setShowFilters(true);
+    }}
+  ];
 
   // Handle form input changes
   const handleInputChange = (e) => {
