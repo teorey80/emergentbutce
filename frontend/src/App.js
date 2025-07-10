@@ -45,6 +45,11 @@ function App() {
   const [expenseLimits, setExpenseLimits] = useState({});
   const [limitWarnings, setLimitWarnings] = useState([]);
   const [showInsights, setShowInsights] = useState(false);
+  
+  // Interactive dashboard states
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [interactiveExpenses, setInteractiveExpenses] = useState([]);
 
   // Form states
   const [formData, setFormData] = useState({
