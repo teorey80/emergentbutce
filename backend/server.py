@@ -814,8 +814,12 @@ async def search_expenses(
             date_filter["$lte"] = end_date
         query["date"] = date_filter
     
+    print(f"MongoDB Query: {query}")  # Debug log
+    
     # Execute query
     expenses = await db.expenses.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    print(f"Found {len(expenses)} expenses")  # Debug log
     
     # Convert date strings back to datetime objects
     for expense in expenses:
