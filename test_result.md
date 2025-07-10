@@ -101,3 +101,161 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Turkish expense tracking application similar to Spendee.com with categorization, dashboards, file import (CSV/Excel/PDF), filtering, and smart analytics features."
+
+backend:
+  - task: "Basic CRUD operations for expenses"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Basic expense endpoints /api/expenses working correctly (200 OK in logs)"
+        
+  - task: "Categories endpoint"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Categories endpoint /api/categories working correctly (200 OK in logs)"
+        
+  - task: "Statistics endpoints (summary, monthly, trends)"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 3
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "All stats endpoints returning 404 errors: /api/expenses/stats/summary, /api/expenses/stats/monthly, /api/expenses/stats/trends"
+        
+  - task: "Category update endpoint"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 2
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "PUT /api/expenses/{expense_id}/category returning 404 errors despite being defined"
+        
+  - task: "Advanced filtering endpoint"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 3
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Filtering endpoints /api/expenses/filter returning 404 errors"
+        
+  - task: "Smart analytics endpoints (predictions, insights, limits)"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 2
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Analytics endpoints /api/expenses/predictions, /api/expenses/insights, /api/expenses/limits/check all returning 404 errors"
+        
+  - task: "File import endpoints (CSV, Excel, PDF)"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported issues with date parsing and amount extraction in file imports"
+
+frontend:
+  - task: "Basic expense management UI"
+    implemented: true
+    working: true
+    file: "App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Basic UI showing correctly with dashboard, expense list, and forms"
+        
+  - task: "Category editing in expense list"
+    implemented: true
+    working: false
+    file: "App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Category dropdown in expense list not working due to backend 404 errors"
+        
+  - task: "Dashboard charts and analytics"
+    implemented: true
+    working: false
+    file: "App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Charts not loading due to backend statistics endpoints returning 404"
+        
+  - task: "Advanced filtering interface"
+    implemented: true
+    working: false
+    file: "App.js"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Filtering interface not working due to backend filter endpoints returning 404"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Statistics endpoints (summary, monthly, trends)"
+    - "Category update endpoint"
+    - "Advanced filtering endpoint"
+  stuck_tasks:
+    - "Statistics endpoints (summary, monthly, trends)"
+    - "Advanced filtering endpoint"
+    - "Category update endpoint"
+  test_all: false
+  test_priority: "stuck_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Identified major backend routing issue - many endpoints returning 404 despite being defined. Router setup appears correct but endpoints not registering properly. Need to investigate router configuration and endpoint definitions."
