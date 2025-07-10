@@ -581,24 +581,39 @@ async def upload_excel(file: UploadFile = File(...)):
                     continue
                     
                 # Handle different amount formats
-                if isinstance(amount_val, str):
-                    # Remove currency symbols and extra text
-                    amount_str = str(amount_val).strip()
-                    # Remove TL, ₺, and other currency symbols
-                    amount_str = re.sub(r'[₺TL]', '', amount_str)
-                    # Replace comma with dot for decimal
+                amount_str = str(amount_val).strip()
+                print(f"Processing Excel amount: '{amount_str}'")  # Debug log
+                
+                # Remove currency symbols and extra text
+                amount_str = re.sub(r'[₺TL\-]', '', amount_str)  # Remove ₺, TL, and - symbols
+                
+                # Handle Turkish decimal format (comma as decimal separator)
+                if ',' in amount_str and '.' not in amount_str:
+                    # Turkish format: 234,50
                     amount_str = amount_str.replace(',', '.')
-                    # Remove spaces
-                    amount_str = amount_str.replace(' ', '')
-                    # Extract only numeric values with decimal
-                    amount_match = re.search(r'-?(\d+\.?\d*)', amount_str)
-                    if amount_match:
-                        amount = abs(float(amount_match.group(1)))
+                elif ',' in amount_str and '.' in amount_str:
+                    # Mixed format: 1.234,50 (thousands separator)
+                    parts = amount_str.split(',')
+                    if len(parts) == 2 and len(parts[1]) == 2:  # Decimal part
+                        amount_str = parts[0].replace('.', '') + '.' + parts[1]
                     else:
+                        amount_str = amount_str.replace(',', '')
+                
+                # Remove any remaining spaces
+                amount_str = amount_str.replace(' ', '').strip()
+                
+                # Extract only numeric values with decimal
+                amount_match = re.search(r'(\d+\.?\d*)', amount_str)
+                if amount_match:
+                    try:
+                        amount = float(amount_match.group(1))
+                        print(f"Parsed Excel amount: {amount}")  # Debug log
+                    except ValueError:
+                        print(f"Failed to parse Excel amount: {amount_str}")
                         continue
                 else:
-                    # If it's already a number
-                    amount = abs(float(amount_val))
+                    print(f"No numeric value found in Excel: {amount_str}")
+                    continue
                 
                 if amount <= 0:
                     continue
