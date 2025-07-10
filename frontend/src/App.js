@@ -596,6 +596,106 @@ function App() {
               </div>
             </div>
 
+            {/* Smart Insights Section */}
+            {insights.length > 0 && (
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className={`font-bold text-gray-900 ${isMobile ? 'text-xl' : 'text-2xl'}`}>🤖 Akıllı İçgörüler</h3>
+                  <button
+                    onClick={() => setShowInsights(!showInsights)}
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {showInsights ? 'Gizle' : 'Tümünü Göster'}
+                  </button>
+                </div>
+                
+                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                  {(showInsights ? insights : insights.slice(0, 2)).map((insight, index) => (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        insight.type === 'warning' ? 'bg-red-50 border-red-400' :
+                        insight.type === 'success' ? 'bg-green-50 border-green-400' :
+                        'bg-blue-50 border-blue-400'
+                      }`}
+                    >
+                      <h4 className={`font-semibold mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>{insight.title}</h4>
+                      <p className={`text-gray-700 mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>{insight.message}</p>
+                      <p className={`text-gray-600 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>💡 {insight.suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Limit Warnings */}
+            {limitWarnings.length > 0 && (
+              <div className="mb-8">
+                <h3 className={`font-bold text-gray-900 mb-4 ${isMobile ? 'text-xl' : 'text-2xl'}`}>⚠️ Limit Uyarıları</h3>
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                  {limitWarnings.map((warning, index) => (
+                    <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-2xl mr-3">{warning.icon}</span>
+                          <div>
+                            <h4 className={`font-semibold text-yellow-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                              {warning.category_name}
+                            </h4>
+                            <p className={`text-yellow-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                              {warning.warning_type === 'approaching_limit' 
+                                ? `Limite yaklaşıyorsunuz (%${warning.percentage.toFixed(0)})`
+                                : `Limit aşıldı! ${formatCurrency(warning.exceeded_by)} fazla`
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold ${isMobile ? 'text-sm' : 'text-base'}`}>
+                            {formatCurrency(warning.current)} / {formatCurrency(warning.limit)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Predictions Section */}
+            {Object.keys(predictions).length > 0 && (
+              <div className="mb-8">
+                <h3 className={`font-bold text-gray-900 mb-6 ${isMobile ? 'text-xl' : 'text-2xl'}`}>🔮 Gelecek Ay Tahminleri</h3>
+                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+                  {Object.entries(predictions).map(([categoryId, prediction]) => (
+                    <div key={categoryId} className="bg-white rounded-lg shadow-sm p-4 border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className={`mr-3 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{prediction.icon}</span>
+                          <div>
+                            <div className={`font-medium text-gray-900 ${isMobile ? 'text-sm' : ''}`}>
+                              {prediction.category_name}
+                            </div>
+                            <div className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                              Güven: %{prediction.confidence.toFixed(0)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold text-blue-600 ${isMobile ? 'text-sm' : ''}`}>
+                            {formatCurrency(prediction.predicted_amount)}
+                          </div>
+                          <div className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            Ort: {formatCurrency(prediction.historical_average)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Category Stats */}
             {Object.keys(stats.category_stats).length > 0 && (
               <div className="mb-8">
