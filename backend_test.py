@@ -89,8 +89,7 @@ class ExpenseTrackerAPITester:
         data = {
             "title": title,
             "amount": amount,
-            "category": category,
-            "date": datetime.now().strftime("%Y-%m-%d")
+            "category": category
         }
         if description:
             data["description"] = description
