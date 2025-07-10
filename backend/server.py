@@ -44,14 +44,6 @@ class ExpenseCreate(BaseModel):
     category: str
     description: Optional[str] = None
     date: Optional[date] = None
-    
-    class Config:
-        arbitrary_types_allowed = True
-
-    def __init__(self, **data):
-        if 'date' not in data or data['date'] is None:
-            data['date'] = date.today()
-        super().__init__(**data)
 
 class Expense(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
