@@ -75,13 +75,17 @@ function App() {
     e.preventDefault();
     try {
       const expenseData = {
-        title: formData.title,
+        title: formData.title.trim(),
         amount: parseFloat(formData.amount),
         category: formData.category,
-        description: formData.description || null
+        description: formData.description ? formData.description.trim() : null,
+        date: formData.date
       };
       
-      await axios.post(`${API}/expenses`, expenseData);
+      console.log('Sending expense data:', expenseData);
+      
+      const response = await axios.post(`${API}/expenses`, expenseData);
+      console.log('Response:', response.data);
       
       // Reset form
       setFormData({
@@ -97,7 +101,12 @@ function App() {
       fetchStats();
     } catch (error) {
       console.error('Error creating expense:', error);
-      alert('Harcama eklenirken bir hata oluştu');
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        alert(`Harcama eklenirken bir hata oluştu: ${error.response.data.detail || error.response.data.message || 'Bilinmeyen hata'}`);
+      } else {
+        alert('Harcama eklenirken bir hata oluştu');
+      }
     }
   };
 
