@@ -704,8 +704,127 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
 
-# Include the router in the main app
-app.include_router(api_router)
+# Get filtered expenses with advanced search
+@api_router.get("/expenses/search", response_model=List[Expense])
+async def search_expenses(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: Optional[int] = 100
+):
+    # Build query
+    query = {}
+    
+    # Text search in title and description
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"title": search_regex},
+            {"description": search_regex}
+        ]
+    
+    # Category filter
+    if category and category != "all":
+        query["category"] = category
+    
+    # Amount range filter
+    if min_amount is not None or max_amount is not None:
+        amount_filter = {}
+        if min_amount is not None:
+            amount_filter["$gte"] = min_amount
+        if max_amount is not None:
+            amount_filter["$lte"] = max_amount
+        query["amount"] = amount_filter
+    
+    # Date range filter
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date
+        query["date"] = date_filter
+    
+    # Execute query
+    expenses = await db.expenses.find(query).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Convert date strings back to datetime objects
+    for expense in expenses:
+        if isinstance(expense.get('created_at'), str):
+            expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+    
+    return [Expense(**expense) for expense in expenses]
+
+# Get expense summary by filters
+@api_router.get("/expenses/summary")
+async def get_expense_summary(
+    category: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    # Build query
+    query = {}
+    
+    if category and category != "all":
+        query["category"] = category
+    
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date
+        query["date"] = date_filter
+    
+    # Get expenses
+    expenses = await db.expenses.find(query).to_list(1000)
+    
+    # Calculate summary
+    total_amount = sum(expense['amount'] for expense in expenses)
+    total_count = len(expenses)
+    
+    # Average per day
+    if start_date and end_date:
+        try:
+            start = datetime.fromisoformat(start_date)
+            end = datetime.fromisoformat(end_date)
+            days = (end - start).days + 1
+            avg_per_day = total_amount / days if days > 0 else 0
+        except:
+            avg_per_day = 0
+    else:
+        avg_per_day = 0
+    
+    # Category breakdown for filtered data
+    category_breakdown = {}
+    for expense in expenses:
+        cat = expense['category']
+        if cat not in category_breakdown:
+            category_breakdown[cat] = {'total': 0, 'count': 0}
+        category_breakdown[cat]['total'] += expense['amount']
+        category_breakdown[cat]['count'] += 1
+    
+    # Add category info
+    for cat_id, stats in category_breakdown.items():
+        category_info = next((cat for cat in EXPENSE_CATEGORIES if cat['id'] == cat_id), None)
+        if category_info:
+            stats['name'] = category_info['name']
+            stats['color'] = category_info['color']
+            stats['icon'] = category_info['icon']
+    
+    return {
+        "total_amount": total_amount,
+        "total_count": total_count,
+        "average_per_day": avg_per_day,
+        "category_breakdown": category_breakdown,
+        "date_range": {
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    }
 
 app.add_middleware(
     CORSMiddleware,
