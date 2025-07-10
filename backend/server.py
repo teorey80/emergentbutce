@@ -186,6 +186,13 @@ async def get_expense_stats():
 async def get_monthly_stats():
     expenses = await db.expenses.find().to_list(1000)
     
+    # Turkish month names
+    turkish_months = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
+        5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos",
+        9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
+    }
+    
     monthly_stats = {}
     for expense in expenses:
         # Parse date string to extract year-month
@@ -194,13 +201,13 @@ async def get_monthly_stats():
             try:
                 parsed_date = datetime.fromisoformat(expense_date)
                 month_key = parsed_date.strftime("%Y-%m")
-                month_name = parsed_date.strftime("%B %Y")
+                month_name = f"{turkish_months[parsed_date.month]} {parsed_date.year}"
             except:
                 month_key = "Unknown"
-                month_name = "Unknown"
+                month_name = "Bilinmeyen"
         else:
             month_key = "Unknown"
-            month_name = "Unknown"
+            month_name = "Bilinmeyen"
         
         if month_key not in monthly_stats:
             monthly_stats[month_key] = {
