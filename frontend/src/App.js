@@ -166,9 +166,37 @@ function App() {
         }
       });
 
-      setUploadStatus(`✅ ${response.data.message}`);
+      console.log('Upload response:', response.data);
+
+      // Show detailed results
+      let statusMessage = `✅ ${response.data.message}`;
       
-      if (endpoint !== '/upload/pdf') {
+      if (response.data.auto_categorization) {
+        statusMessage += '\n\n🤖 Otomatik Kategorilendirme:';
+        Object.entries(response.data.auto_categorization).forEach(([category, items]) => {
+          const categoryInfo = getCategoryInfo(category);
+          statusMessage += `\n${categoryInfo.icon} ${categoryInfo.name}: ${items.length} harcama`;
+        });
+      }
+
+      if (response.data.detected_columns) {
+        statusMessage += '\n\n📋 Tespit Edilen Sütunlar:';
+        Object.entries(response.data.detected_columns).forEach(([field, column]) => {
+          statusMessage += `\n• ${field}: ${column}`;
+        });
+      }
+
+      if (response.data.errors && response.data.errors.length > 0) {
+        statusMessage += `\n\n⚠️ Hatalar:\n${response.data.errors.slice(0, 3).join('\n')}`;
+        if (response.data.errors.length > 3) {
+          statusMessage += `\n... ve ${response.data.errors.length - 3} hata daha`;
+        }
+      }
+
+      setUploadStatus(statusMessage);
+      
+      // Refresh data if expenses were added
+      if (response.data.imported > 0 || response.data.auto_added > 0) {
         fetchExpenses();
         fetchAllStats();
       }
@@ -176,11 +204,21 @@ function App() {
       setTimeout(() => {
         setUploadStatus('');
         setShowImportModal(false);
-      }, 3000);
+      }, 8000);
 
     } catch (error) {
       console.error('Error uploading file:', error);
-      setUploadStatus(`❌ Hata: ${error.response?.data?.detail || error.message}`);
+      let errorMessage = `❌ Hata: ${error.response?.data?.detail || error.message}`;
+      
+      if (error.response?.data?.errors) {
+        errorMessage += `\n\nDetaylı Hatalar:\n${error.response.data.errors.slice(0, 3).join('\n')}`;
+      }
+      
+      setUploadStatus(errorMessage);
+      
+      setTimeout(() => {
+        setUploadStatus('');
+      }, 10000);
     }
   };
 
