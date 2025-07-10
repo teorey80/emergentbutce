@@ -704,6 +704,9 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
 
+# Include the router in the main app
+app.include_router(api_router)
+
 # Get filtered expenses with advanced search
 @api_router.get("/expenses/search", response_model=List[Expense])
 async def search_expenses(
