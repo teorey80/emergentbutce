@@ -427,7 +427,6 @@ async def upload_csv(file: UploadFile = File(...)):
                 
                 # Handle different amount formats
                 amount_str = str(amount_val).strip()
-                print(f"Processing amount: '{amount_str}'")  # Debug log
                 
                 # Remove currency symbols and extra text
                 amount_str = re.sub(r'[₺TL\-]', '', amount_str)  # Remove ₺, TL, and - symbols
@@ -452,12 +451,9 @@ async def upload_csv(file: UploadFile = File(...)):
                 if amount_match:
                     try:
                         amount = float(amount_match.group(1))
-                        print(f"Parsed amount: {amount}")  # Debug log
                     except ValueError:
-                        print(f"Failed to parse amount: {amount_str}")
                         continue
                 else:
-                    print(f"No numeric value found in: {amount_str}")
                     continue
                 
                 if amount <= 0:
