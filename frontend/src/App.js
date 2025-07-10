@@ -946,129 +946,180 @@ function App() {
               
               {showFilters && (
                 <div className="p-6 bg-gray-50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Search */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        🔎 Metin Arama
-                      </label>
-                      <input
-                        type="text"
-                        value={filters.search}
-                        onChange={(e) => handleFilterChange('search', e.target.value)}
-                        placeholder="Harcama adı veya açıklama ara..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    {/* Category Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        📋 Kategori
-                      </label>
-                      <select
-                        value={filters.category}
-                        onChange={(e) => handleFilterChange('category', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="all">Tüm Kategoriler</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.icon} {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* Amount Range */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        💰 Tutar Aralığı
-                      </label>
-                      <div className="flex space-x-2">
+                  <form onSubmit={handleApplyFilters}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Search */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          🔎 Metin Arama
+                        </label>
                         <input
-                          type="number"
-                          value={filters.minAmount}
-                          onChange={(e) => handleFilterChange('minAmount', e.target.value)}
-                          placeholder="Min ₺"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <input
-                          type="number"
-                          value={filters.maxAmount}
-                          onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
-                          placeholder="Max ₺"
+                          type="text"
+                          value={filters.search}
+                          onChange={(e) => handleFilterChange('search', e.target.value)}
+                          placeholder="Harcama adı veya açıklama ara..."
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
-                    </div>
-                    
-                    {/* Date Range */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        📅 Başlangıç Tarihi
-                      </label>
-                      <input
-                        type="date"
-                        value={filters.startDate}
-                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        📅 Bitiş Tarihi
-                      </label>
-                      <input
-                        type="date"
-                        value={filters.endDate}
-                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      
+                      {/* Category Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📋 Kategori
+                        </label>
+                        <select
+                          value={filters.category}
+                          onChange={(e) => handleFilterChange('category', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="all">Tüm Kategoriler</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.icon} {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Amount Range */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          💰 Tutar Aralığı
+                        </label>
+                        <div className="flex space-x-2">
+                          <input
+                            type="number"
+                            value={filters.minAmount}
+                            onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                            placeholder="Min ₺"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="number"
+                            value={filters.maxAmount}
+                            onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                            placeholder="Max ₺"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Date Range */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📅 Başlangıç Tarihi
+                        </label>
+                        <input
+                          type="date"
+                          value={filters.startDate}
+                          onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          📅 Bitiş Tarihi
+                        </label>
+                        <input
+                          type="date"
+                          value={filters.endDate}
+                          onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-col space-y-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          🎯 İşlemler
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={isFiltering}
+                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center"
+                        >
+                          {isFiltering ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Filtreleniyor...
+                            </>
+                          ) : (
+                            '🔍 Filtrele'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                        >
+                          🗑️ Temizle
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Quick Filters */}
-                    <div>
+                    <div className="mt-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         ⚡ Hızlı Filtreler
                       </label>
                       <div className="flex flex-wrap gap-2">
                         <button
+                          type="button"
                           onClick={() => {
                             const today = new Date().toISOString().split('T')[0];
                             handleFilterChange('startDate', today);
                             handleFilterChange('endDate', today);
                           }}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200"
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition-colors"
                         >
                           Bugün
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             const today = new Date();
                             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
                             handleFilterChange('startDate', weekAgo.toISOString().split('T')[0]);
                             handleFilterChange('endDate', today.toISOString().split('T')[0]);
                           }}
-                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200"
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition-colors"
                         >
                           Son 7 Gün
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             const today = new Date();
                             const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
                             handleFilterChange('startDate', monthAgo.toISOString().split('T')[0]);
                             handleFilterChange('endDate', today.toISOString().split('T')[0]);
                           }}
-                          className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200"
+                          className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition-colors"
                         >
                           Son 30 Gün
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleFilterChange('category', 'food');
+                          }}
+                          className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm hover:bg-orange-200 transition-colors"
+                        >
+                          🍽️ Yiyecek
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleFilterChange('category', 'transport');
+                          }}
+                          className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm hover:bg-teal-200 transition-colors"
+                        >
+                          🚗 Ulaşım
+                        </button>
                       </div>
                     </div>
-                  </div>
+                  </form>
                   
                   {/* Filter Summary */}
                   {filterSummary && (
