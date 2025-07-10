@@ -1222,6 +1222,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Include the router in the main app (MUST be after all endpoint definitions)
+app.include_router(api_router)
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
