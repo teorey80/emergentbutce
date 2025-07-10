@@ -43,7 +43,7 @@ class ExpenseCreate(BaseModel):
     amount: float
     category: str
     description: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[str] = None  # Accept date as string from frontend
 
 class Expense(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -51,21 +51,15 @@ class Expense(BaseModel):
     amount: float
     category: str
     description: Optional[str] = None
-    date: date
+    date: str  # Store as string in MongoDB
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    class Config:
-        arbitrary_types_allowed = True
 
 class ExpenseUpdate(BaseModel):
     title: Optional[str] = None
     amount: Optional[float] = None
     category: Optional[str] = None
     description: Optional[str] = None
-    date: Optional[date] = None
-    
-    class Config:
-        arbitrary_types_allowed = True
+    date: Optional[str] = None
 
 # Root endpoint
 @api_router.get("/")
@@ -88,14 +82,13 @@ async def create_expense(expense_data: ExpenseCreate):
     expense_dict = expense_data.dict()
     
     # Set default date if not provided
-    if expense_dict.get('date') is None:
-        expense_dict['date'] = date.today()
+    if not expense_dict.get('date'):
+        expense_dict['date'] = date.today().isoformat()
         
     expense_obj = Expense(**expense_dict)
     
-    # Convert date to string for MongoDB
+    # Convert to dict for MongoDB
     expense_doc = expense_obj.dict()
-    expense_doc['date'] = expense_obj.date.isoformat()
     expense_doc['created_at'] = expense_obj.created_at.isoformat()
     
     await db.expenses.insert_one(expense_doc)
@@ -106,10 +99,10 @@ async def create_expense(expense_data: ExpenseCreate):
 async def get_expenses():
     expenses = await db.expenses.find().sort("created_at", -1).to_list(1000)
     
-    # Convert date strings back to date objects
+    # Convert date strings back to datetime objects
     for expense in expenses:
-        expense['date'] = datetime.fromisoformat(expense['date']).date()
-        expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+        if isinstance(expense.get('created_at'), str):
+            expense['created_at'] = datetime.fromisoformat(expense['created_at'])
     
     return [Expense(**expense) for expense in expenses]
 
@@ -120,8 +113,8 @@ async def get_expense(expense_id: str):
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    expense['date'] = datetime.fromisoformat(expense['date']).date()
-    expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+    if isinstance(expense.get('created_at'), str):
+        expense['created_at'] = datetime.fromisoformat(expense['created_at'])
     
     return Expense(**expense)
 
@@ -135,14 +128,12 @@ async def update_expense(expense_id: str, expense_data: ExpenseUpdate):
     # Update fields
     update_data = expense_data.dict(exclude_unset=True)
     if update_data:
-        if 'date' in update_data:
-            update_data['date'] = update_data['date'].isoformat()
         await db.expenses.update_one({"id": expense_id}, {"$set": update_data})
     
     # Get updated expense
     updated_expense = await db.expenses.find_one({"id": expense_id})
-    updated_expense['date'] = datetime.fromisoformat(updated_expense['date']).date()
-    updated_expense['created_at'] = datetime.fromisoformat(updated_expense['created_at'])
+    if isinstance(updated_expense.get('created_at'), str):
+        updated_expense['created_at'] = datetime.fromisoformat(updated_expense['created_at'])
     
     return Expense(**updated_expense)
 
