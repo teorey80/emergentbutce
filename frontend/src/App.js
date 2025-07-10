@@ -75,8 +75,10 @@ function App() {
     e.preventDefault();
     try {
       const expenseData = {
-        ...formData,
-        amount: parseFloat(formData.amount)
+        title: formData.title,
+        amount: parseFloat(formData.amount),
+        category: formData.category,
+        description: formData.description || null
       };
       
       await axios.post(`${API}/expenses`, expenseData);
