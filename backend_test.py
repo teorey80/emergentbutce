@@ -148,8 +148,7 @@ class ExpenseTrackerAPITester:
         data = {
             "title": "Invalid Category Test",
             "amount": 100.0,
-            "category": "invalid_category",
-            "date": datetime.now().strftime("%Y-%m-%d")
+            "category": "invalid_category"
         }
         
         success, response = self.run_test(
