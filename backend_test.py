@@ -4,7 +4,7 @@ from datetime import datetime
 import sys
 
 class ExpenseTrackerAPITester:
-    def __init__(self, base_url="https://2c34baf8-5446-43bb-b7d2-5b3a323314fc.preview.emergentagent.com"):
+    def __init__(self, base_url="https://b72b9d31-4785-4523-b579-5e08df25fcbf.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
