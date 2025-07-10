@@ -51,6 +51,10 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [interactiveExpenses, setInteractiveExpenses] = useState([]);
+  
+  // Category editing states
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [updatingExpense, setUpdatingExpense] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({
