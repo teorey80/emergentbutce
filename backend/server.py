@@ -749,7 +749,6 @@ async def upload_excel(file: UploadFile = File(...)):
                 # Skip if title becomes too short or empty
                 if len(title) < 3:
                     continue
-                    continue
                 
                 # Extract amount (handle negative values for expenses)
                 amount_val = row[column_mapping['amount']]
