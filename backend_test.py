@@ -21,10 +21,10 @@ class ExpenseTrackerAPITester:
             "category_update": {"passed": 0, "total": 0, "details": []}
         }
 
-    def run_test(self, name, method, endpoint, expected_status, data=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, files=None, category="general"):
         """Run a single API test"""
         url = f"{self.api_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json'} if not files else {}
         
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
@@ -33,13 +33,26 @@ class ExpenseTrackerAPITester:
             if method == 'GET':
                 response = requests.get(url, headers=headers)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers)
+                if files:
+                    response = requests.post(url, files=files)
+                else:
+                    response = requests.post(url, json=data, headers=headers)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=headers)
             elif method == 'PUT':
                 response = requests.put(url, json=data, headers=headers)
             
             success = response.status_code == expected_status
+            
+            # Track results by category
+            if category in self.test_results:
+                self.test_results[category]["total"] += 1
+                if success:
+                    self.test_results[category]["passed"] += 1
+                    self.test_results[category]["details"].append(f"✅ {name}")
+                else:
+                    self.test_results[category]["details"].append(f"❌ {name} - Expected {expected_status}, got {response.status_code}")
+            
             if success:
                 self.tests_passed += 1
                 print(f"✅ Passed - Status: {response.status_code}")
@@ -56,6 +69,9 @@ class ExpenseTrackerAPITester:
 
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
+            if category in self.test_results:
+                self.test_results[category]["total"] += 1
+                self.test_results[category]["details"].append(f"❌ {name} - Error: {str(e)}")
             return False, None
 
     def test_get_categories(self):
