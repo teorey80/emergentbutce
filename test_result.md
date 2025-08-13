@@ -261,15 +261,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Statistics endpoints (summary, monthly, trends)"
-    - "Category update endpoint"
-    - "Advanced filtering endpoint"
-  stuck_tasks:
-    - "Statistics endpoints (summary, monthly, trends)"
-    - "Advanced filtering endpoint"
-    - "Category update endpoint"
+    - "Basic CRUD operations for expenses"
+    - "Categories endpoint"
+  stuck_tasks: []
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
