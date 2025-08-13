@@ -1052,67 +1052,6 @@ async def update_expense_category(expense_id: str, category_data: dict):
     
     return Expense(**updated_expense)
 
-# Get filtered expenses with advanced search  
-@api_router.get("/expenses/filter")
-async def filter_expenses(
-    search: Optional[str] = None,
-    category: Optional[str] = None,
-    min_amount: Optional[float] = None,
-    max_amount: Optional[float] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    limit: Optional[int] = 100
-):
-    # Build query
-    query = {}
-    
-    # Text search in title and description
-    if search:
-        search_regex = {"$regex": search, "$options": "i"}
-        query["$or"] = [
-            {"title": search_regex},
-            {"description": search_regex}
-        ]
-    
-    # Category filter
-    if category and category != "all":
-        query["category"] = category
-    
-    # Amount range filter
-    if min_amount is not None or max_amount is not None:
-        amount_filter = {}
-        if min_amount is not None:
-            amount_filter["$gte"] = min_amount
-        if max_amount is not None:
-            amount_filter["$lte"] = max_amount
-        query["amount"] = amount_filter
-    
-    # Date range filter
-    if start_date or end_date:
-        date_filter = {}
-        if start_date:
-            date_filter["$gte"] = start_date
-        if end_date:
-            date_filter["$lte"] = end_date
-        query["date"] = date_filter
-    
-    # Execute query and convert to list
-    expenses_cursor = db.expenses.find(query, {"_id": 0}).sort("created_at", -1).limit(limit)
-    expenses = await expenses_cursor.to_list(limit)
-    
-    # Convert date strings back to datetime objects
-    result_expenses = []
-    for expense in expenses:
-        try:
-            if isinstance(expense.get('created_at'), str):
-                expense['created_at'] = datetime.fromisoformat(expense['created_at'])
-            result_expenses.append(Expense(**expense))
-        except Exception as e:
-            # Skip invalid records
-            continue
-    
-    return result_expenses
-
 # Get expense summary by filters
 @api_router.get("/expenses/summary")
 async def get_expense_summary(
