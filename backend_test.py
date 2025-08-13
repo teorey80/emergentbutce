@@ -1,7 +1,9 @@
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, date
 import sys
+import io
+import os
 
 class ExpenseTrackerAPITester:
     def __init__(self, base_url="https://b72b9d31-4785-4523-b579-5e08df25fcbf.preview.emergentagent.com"):
@@ -10,6 +12,14 @@ class ExpenseTrackerAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.created_expenses = []
+        self.test_results = {
+            "basic_crud": {"passed": 0, "total": 0, "details": []},
+            "statistics": {"passed": 0, "total": 0, "details": []},
+            "analytics": {"passed": 0, "total": 0, "details": []},
+            "filtering": {"passed": 0, "total": 0, "details": []},
+            "file_import": {"passed": 0, "total": 0, "details": []},
+            "category_update": {"passed": 0, "total": 0, "details": []}
+        }
 
     def run_test(self, name, method, endpoint, expected_status, data=None):
         """Run a single API test"""
