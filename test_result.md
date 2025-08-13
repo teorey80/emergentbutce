@@ -176,15 +176,18 @@ backend:
         
   - task: "Smart analytics endpoints (predictions, insights, limits)"
     implemented: true
-    working: false
+    working: true
     file: "server.py"
     stuck_count: 2
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Analytics endpoints /api/expenses/predictions, /api/expenses/insights, /api/expenses/limits/check all returning 404 errors"
+      - working: true
+        agent: "testing"
+        comment: "✅ WORKING - All smart analytics endpoints functioning correctly. GET /api/expenses/predictions returns predictions for September 2025 based on 2 months of data with confidence scores. GET /api/expenses/insights generates 2 smart insights with Turkish messages about spending trends. GET /api/expenses/limits/check returns current month spending (₺3,046.35) with no warnings. All endpoints return proper Turkish text and currency formatting."
         
   - task: "File import endpoints (CSV, Excel, PDF)"
     implemented: true
