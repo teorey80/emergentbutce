@@ -516,38 +516,86 @@ def main():
     # Setup
     tester = ExpenseTrackerAPITester()
     
-    # Run tests
-    print("\n==== Testing Expense Tracker API ====")
+    # Run comprehensive tests
+    print("\n" + "="*60)
+    print("🚀 COMPREHENSIVE TURKISH EXPENSE TRACKER API TESTING")
+    print("="*60)
+    
+    # 1. Basic CRUD Operations Tests
+    print("\n📋 TESTING BASIC CRUD OPERATIONS...")
     
     # Test getting categories
     categories_success, categories = tester.test_get_categories()
     if not categories_success:
-        print("❌ Failed to get categories, stopping tests")
-        return 1
+        print("❌ Failed to get categories, continuing with other tests")
     
     # Test getting expenses (initial state)
     tester.test_get_expenses()
     
-    # Test creating expenses
-    tester.test_create_expense("Öğle Yemeği", 45.50, "food", "Restoran")
-    tester.test_create_expense("Taksi", 120.75, "transport", "İş seyahati")
-    tester.test_create_expense("Sinema", 85.00, "entertainment")
+    # Test creating expenses with Turkish data
+    expense1_success, expense1 = tester.test_create_expense("Migros Market Alışverişi", 245.75, "food", "Haftalık market alışverişi")
+    expense2_success, expense2 = tester.test_create_expense("Taksi Ücreti", 85.50, "transport", "İş toplantısı için taksi")
+    expense3_success, expense3 = tester.test_create_expense("Sinema Bileti", 120.00, "entertainment", "Arkadaşlarla film izleme")
+    expense4_success, expense4 = tester.test_create_expense("Eczane", 67.25, "health", "İlaç alımı")
+    
+    # Test getting single expense
+    if expense1_success and expense1:
+        tester.test_get_single_expense(expense1['id'])
+    
+    # Test updating expense
+    if expense2_success and expense2:
+        update_data = {"title": "Uber Taksi", "amount": 95.00}
+        tester.test_update_expense(expense2['id'], update_data)
     
     # Test getting expenses after creation
     tester.test_get_expenses()
     
-    # Test getting expense statistics
-    tester.test_get_expense_stats()
-    
     # Test invalid category
     tester.test_invalid_category()
     
-    # Clean up
+    # 2. Statistics Endpoints Tests
+    print("\n📊 TESTING STATISTICS ENDPOINTS...")
+    tester.test_get_expense_stats()
+    tester.test_get_monthly_stats()
+    tester.test_get_trend_stats()
+    
+    # 3. Analytics Endpoints Tests  
+    print("\n🧠 TESTING ANALYTICS ENDPOINTS...")
+    tester.test_get_predictions()
+    tester.test_get_insights()
+    tester.test_check_limits()
+    
+    # 4. Category Update Tests
+    print("\n🏷️ TESTING CATEGORY UPDATE...")
+    if expense3_success and expense3:
+        tester.test_update_expense_category(expense3['id'], "shopping")
+    
+    # 5. Advanced Filtering Tests
+    print("\n🔍 TESTING ADVANCED FILTERING...")
+    tester.test_filter_expenses_by_category("food")
+    tester.test_filter_expenses_by_amount(50.0, 200.0)
+    tester.test_filter_expenses_by_search("taksi")
+    
+    # Test date range filtering
+    today = date.today()
+    yesterday = date.today().replace(day=today.day-1) if today.day > 1 else today
+    tester.test_filter_expenses_by_date_range(yesterday.isoformat(), today.isoformat())
+    
+    # 6. File Import Tests
+    print("\n📁 TESTING FILE IMPORT FUNCTIONALITY...")
+    tester.test_csv_upload()
+    tester.test_excel_upload()
+    tester.test_pdf_upload()
+    
+    # Clean up created expenses
     tester.cleanup()
     
-    # Print results
-    print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
-    return 0 if tester.tests_passed == tester.tests_run else 1
+    # Print comprehensive results
+    tester.print_test_summary()
+    
+    # Return appropriate exit code
+    passed, total = tester.print_test_summary()
+    return 0 if passed == total else 1
 
 if __name__ == "__main__":
     sys.exit(main())
