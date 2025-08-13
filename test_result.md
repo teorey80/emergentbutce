@@ -131,15 +131,18 @@ backend:
         
   - task: "Statistics endpoints (summary, monthly, trends)"
     implemented: true
-    working: false
+    working: true
     file: "server.py"
     stuck_count: 3
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "All stats endpoints returning 404 errors: /api/expenses/stats/summary, /api/expenses/stats/monthly, /api/expenses/stats/trends"
+      - working: true
+        agent: "testing"
+        comment: "✅ FIXED - All statistics endpoints now working correctly. GET /api/expenses/stats/summary returns total amount (₺88,236.48), expense count (155), and category breakdown. GET /api/expenses/stats/monthly returns 4 monthly data points with Turkish month names. GET /api/expenses/stats/trends returns trend data for all 8 categories. Issue was resolved by main agent fixing routing conflicts."
         
   - task: "Category update endpoint"
     implemented: true
