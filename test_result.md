@@ -146,15 +146,18 @@ backend:
         
   - task: "Category update endpoint"
     implemented: true
-    working: false
+    working: true
     file: "server.py"
     stuck_count: 2
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "PUT /api/expenses/{expense_id}/category returning 404 errors despite being defined"
+      - working: true
+        agent: "testing"
+        comment: "✅ WORKING - Category update endpoint PUT /api/expenses/{expense_id}/category is functioning correctly. Successfully tested updating expense category from 'entertainment' to 'shopping'. Endpoint validates category against valid categories list and returns updated expense object."
         
   - task: "Advanced filtering endpoint"
     implemented: true
