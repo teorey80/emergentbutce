@@ -191,10 +191,10 @@ backend:
         
   - task: "File import endpoints (CSV, Excel, PDF)"
     implemented: true
-    working: true
+    working: false
     file: "server.py"
-    stuck_count: 1
-    priority: "medium"
+    stuck_count: 2
+    priority: "high"
     needs_retesting: false
     status_history:
       - working: false
@@ -203,6 +203,21 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ MOSTLY WORKING - CSV import working perfectly: successfully imported 3 expenses with proper Turkish data, automatic categorization, and date parsing. Excel endpoint available but requires valid Excel files (returns proper error for invalid files). PDF import has minor issues with simple test files but endpoint is functional. Core functionality for CSV (most common format) is working correctly with smart categorization and Turkish text support. Minor: PDF processing needs improvement for edge cases."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BUG FOUND - Enhanced Turkish bank statement parsing has critical issues. While basic CSV import works (100% success for simple cases), Turkish bank credit card statements with reward patterns (MAXIMIL/MAXIPUAN) are being incorrectly filtered. Root cause: Amount parsing logic error in server.py line 676 - when description contains MAXIMIL/MAXIPUAN, the code tries to parse amounts like '1.544,14' or '1,544.14' with simple string replacement, causing parsing errors that trigger filtering. This affects real-world İş Bankası credit card imports. CRITICAL: 2/3 major Turkish bank format cases failing. Title cleaning works perfectly (100% success), point filtering works correctly, but legitimate transactions with reward patterns are lost."
+        
+  - task: "Enhanced Turkish bank statement parsing"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL PARSING BUG - Comprehensive testing of enhanced Turkish bank statement parsing reveals critical issue affecting real-world İş Bankası credit card statements. WORKING CORRECTLY: (1) Title/Description cleaning - 100% success removing MAXIMIL/MAXIPUAN/WORLDPUAN patterns, installment info, location codes. (2) Point value filtering - correctly filters amounts <10 TL when description contains reward patterns. (3) Turkish number format parsing - works for simple cases. CRITICAL FAILURE: When legitimate transactions have reward patterns in description (e.g., 'METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46' with amount '1.544,14'), the amount parsing logic fails due to improper string conversion in line 676. This causes legitimate ₺1544.14 transactions to be filtered as points. IMPACT: Real Turkish bank credit card statement imports lose actual transaction data. REQUIRES IMMEDIATE FIX."
 
 frontend:
   - task: "Basic expense management UI"
