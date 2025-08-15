@@ -1023,48 +1023,112 @@ async def upload_pdf(file: UploadFile = File(...)):
         for page in pdf_reader.pages:
             text += page.extract_text()
         
-        # Enhanced expense extraction for Turkish bank statements
+        # Enhanced expense extraction specifically for Turkish bank credit card statements
         extracted_expenses = []
         
         # Split text into lines for better processing
         lines = text.split('\n')
         
+        # Look for table-like structures typical in Turkish bank statements
         for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
             
-            # Look for patterns with amount and merchant
-            # Pattern: Date Merchant Amount
-            amount_pattern = r'(\d+[.,]\d{2})\s*(?:TL|₺|EUR|USD)?'
+            # Skip header and footer lines
+            if any(skip_word in line.upper() for skip_word in ['ISLEM TARIHI', 'ACIKLAMA', 'TUTAR', 'HESAP OZETI', 'SON ODEME']):
+                continue
             
-            amounts = re.findall(amount_pattern, line)
-            if amounts:
-                for amount_str in amounts:
-                    try:
-                        amount = float(amount_str.replace(',', '.'))
-                        if amount > 0:
-                            # Extract potential merchant name (text before amount)
-                            before_amount = line.split(amount_str)[0].strip()
-                            
-                            # Clean up merchant name
-                            merchant = re.sub(r'^\d+/\d+/\d+', '', before_amount).strip()  # Remove dates
-                            merchant = re.sub(r'^\d+\.\d+\.\d+', '', merchant).strip()
-                            merchant = re.sub(r'[*]+', '', merchant).strip()  # Remove asterisks
-                            
-                            if len(merchant) > 3 and len(merchant) < 100:
-                                # Smart categorization
-                                category = smart_categorize(merchant)
-                                
-                                extracted_expenses.append({
-                                    'title': merchant,
-                                    'amount': amount,
-                                    'category': category,
-                                    'description': f"PDF'den çıkarılan: {file.filename}",
-                                    'date': date.today().isoformat()
-                                })
-                    except ValueError:
+            # Look for lines that match Turkish credit card statement pattern:
+            # DATE | DESCRIPTION (with KAZANILAN MAXIMIL:X.XX MAXIPUAN:X.XX) | AMOUNT
+            
+            # Pattern for Turkish bank credit card lines
+            # Example: "25.02.2025 METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46 1,544.14-"
+            turkish_line_pattern = r'(\d{1,2}[./]\d{1,2}[./]\d{4})\s+(.*?)\s+([\d,.-]+)\s*$'
+            match = re.match(turkish_line_pattern, line)
+            
+            if match:
+                date_str, description, amount_str = match.groups()
+                
+                # Clean the description - remove points and rewards info
+                clean_description = description
+                
+                # Apply the same cleaning logic as CSV/Excel
+                # Remove KAZANILAN MAXIMIL and MAXIPUAN sections
+                clean_description = re.sub(r'KAZANILAN\s+MAXIMIL[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                clean_description = re.sub(r'MAXIPUAN[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                clean_description = re.sub(r'IPTAL\s+EDILEN\s+MAXIMIL[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                clean_description = re.sub(r'IPTAL\s+EDILEN\s+MAXIPUAN[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                
+                # Remove other reward patterns
+                clean_description = re.sub(r'WORLDPUAN[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                clean_description = re.sub(r'BONUS[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                clean_description = re.sub(r'MIL[:\s]*[\d,]+', '', clean_description, flags=re.IGNORECASE)
+                
+                # Remove installment info
+                clean_description = re.sub(r'\(\d+/\d+\s*TK\)', '', clean_description)
+                clean_description = re.sub(r'\d+/\d+\s*TK', '', clean_description)
+                
+                # Remove location codes and extra text
+                clean_description = re.sub(r'\s+[A-Z]{2}\s*$', '', clean_description)
+                clean_description = re.sub(r'[\d,]+\s*TL', '', clean_description)
+                
+                # Clean up
+                clean_description = re.sub(r'\s+', ' ', clean_description).strip()
+                clean_description = re.sub(r'^[*\-\s]+|[*\-\s]+$', '', clean_description)
+                
+                # Skip if description becomes too short
+                if len(clean_description) < 3:
+                    continue
+                
+                # Parse amount - handle Turkish format
+                try:
+                    # Remove currency and negative signs
+                    amount_clean = amount_str.replace('-', '').replace('+', '').replace('TL', '').replace('₺', '').strip()
+                    
+                    # Handle Turkish decimal format (1.544,14 or 1,544.14)
+                    if ',' in amount_clean and '.' in amount_clean:
+                        if amount_clean.rfind(',') > amount_clean.rfind('.'):
+                            # Format: 1.544,14
+                            parts = amount_clean.split(',')
+                            if len(parts) == 2 and len(parts[1]) == 2:
+                                amount_clean = parts[0].replace('.', '') + '.' + parts[1]
+                        else:
+                            # Format: 1,544.14
+                            amount_clean = amount_clean.replace(',', '')
+                    elif ',' in amount_clean:
+                        # Only comma - could be decimal (234,50) or thousands (1,544)
+                        parts = amount_clean.split(',')
+                        if len(parts) == 2 and len(parts[1]) == 2:
+                            amount_clean = amount_clean.replace(',', '.')  # Decimal
+                        else:
+                            amount_clean = amount_clean.replace(',', '')  # Thousands
+                    
+                    amount = float(amount_clean)
+                    
+                    # Skip very small amounts (likely points) or unrealistic amounts
+                    if amount < 1.0 or amount > 100000:
                         continue
+                    
+                    # Parse date
+                    try:
+                        expense_date = datetime.strptime(date_str.replace('.', '/'), '%d/%m/%Y').date().isoformat()
+                    except:
+                        expense_date = date.today().isoformat()
+                    
+                    # Smart categorization
+                    category = smart_categorize(clean_description)
+                    
+                    extracted_expenses.append({
+                        'title': clean_description,
+                        'amount': amount,
+                        'category': category,
+                        'description': f"PDF'den çıkarılan: {file.filename}",
+                        'date': expense_date
+                    })
+                    
+                except (ValueError, IndexError):
+                    continue
         
         # If auto-add is requested, add expenses
         expenses_added = 0
