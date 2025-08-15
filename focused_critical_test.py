@@ -138,7 +138,7 @@ def test_number_formats():
         print(f"\n   Testing {description}: {amount_str}")
         
         csv_content = f"""description,amount,date
-TEST TRANSACTION,{amount_str},2024-01-15"""
+"TEST TRANSACTION","{amount_str}",2024-01-15"""
         
         files = {'file': (f'format_test_{amount_str.replace(".", "_").replace(",", "_")}.csv', csv_content, 'text/csv')}
         
