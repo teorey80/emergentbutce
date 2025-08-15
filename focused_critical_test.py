@@ -10,9 +10,9 @@ def test_critical_metro_case():
     print("🚨 TESTING CRITICAL CASE: METRO UMRANIYE TEKEL with 1.544,14")
     print("Expected: Should import as ₺1544.14 expense (NOT be filtered as points)")
     
-    # The exact failing case from the review request
+    # The exact failing case from the review request - properly escaped
     csv_content = """description,amount,date
-METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46,1.544,14,2024-01-15"""
+"METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46","1.544,14",2024-01-15"""
     
     files = {'file': ('critical_metro_test.csv', csv_content, 'text/csv')}
     
