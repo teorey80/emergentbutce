@@ -673,8 +673,37 @@ async def upload_csv(file: UploadFile = File(...)):
                 # Skip if the amount looks like a points/bonus value from description leak
                 if 'MAXIMIL' in str(row[column_mapping['title']]).upper() or 'MAXIPUAN' in str(row[column_mapping['title']]).upper():
                     # If description contains points info, be more careful with amount validation
-                    if float(str(amount_val).replace(',', '.').replace('-', '')) < 10:
-                        continue  # Skip very small amounts that might be points
+                    # Use proper Turkish number parsing instead of simple replacement
+                    test_amount_str = str(amount_val).replace('-', '').replace('+', '').strip()
+                    try:
+                        # Handle Turkish format properly for validation
+                        if ',' in test_amount_str and '.' in test_amount_str:
+                            # Check if it's Turkish format (1.544,14) or US format (1,544.14)
+                            if test_amount_str.rfind(',') > test_amount_str.rfind('.'):
+                                # Turkish format: 1.544,14
+                                parts = test_amount_str.split(',')
+                                if len(parts) == 2 and len(parts[1]) == 2:
+                                    test_amount = float(parts[0].replace('.', '') + '.' + parts[1])
+                                else:
+                                    test_amount = float(test_amount_str.replace(',', ''))
+                            else:
+                                # US format: 1,544.14
+                                test_amount = float(test_amount_str.replace(',', ''))
+                        elif ',' in test_amount_str:
+                            # Only comma - Turkish decimal (234,50) or thousands (1,544)
+                            parts = test_amount_str.split(',')
+                            if len(parts) == 2 and len(parts[1]) == 2:
+                                test_amount = float(test_amount_str.replace(',', '.'))
+                            else:
+                                test_amount = float(test_amount_str.replace(',', ''))
+                        else:
+                            test_amount = float(test_amount_str)
+                        
+                        if test_amount < 10:
+                            continue  # Skip very small amounts that might be points
+                    except ValueError:
+                        # If we can't parse it, skip the validation check
+                        pass
                 
                 # Remove currency symbols and negative signs for processing
                 amount_str = re.sub(r'[₺TL]', '', amount_str)  # Remove currency symbols
