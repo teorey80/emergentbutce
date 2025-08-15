@@ -5,9 +5,9 @@ import re
 def debug_turkish_parsing():
     """Debug the Turkish number parsing logic"""
     
-    # Test the exact case
+    # Test the exact case with proper CSV escaping
     csv_content = """description,amount,date
-METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46,1.544,14,2024-01-15"""
+"METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46","1.544,14",2024-01-15"""
     
     df = pd.read_csv(io.StringIO(csv_content))
     
