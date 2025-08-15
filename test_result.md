@@ -211,13 +211,16 @@ backend:
     implemented: true
     working: false
     file: "server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
     needs_retesting: false
     status_history:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL PARSING BUG - Comprehensive testing of enhanced Turkish bank statement parsing reveals critical issue affecting real-world İş Bankası credit card statements. WORKING CORRECTLY: (1) Title/Description cleaning - 100% success removing MAXIMIL/MAXIPUAN/WORLDPUAN patterns, installment info, location codes. (2) Point value filtering - correctly filters amounts <10 TL when description contains reward patterns. (3) Turkish number format parsing - works for simple cases. CRITICAL FAILURE: When legitimate transactions have reward patterns in description (e.g., 'METRO UMRANIYE TEKEL ISTANBUL TR KAZANILAN MAXIMIL:3,09 MAXIPUAN:0,46' with amount '1.544,14'), the amount parsing logic fails due to improper string conversion in line 676. This causes legitimate ₺1544.14 transactions to be filtered as points. IMPACT: Real Turkish bank credit card statement imports lose actual transaction data. REQUIRES IMMEDIATE FIX."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BUG STILL EXISTS AFTER FIX ATTEMPT - Re-tested enhanced Turkish bank statement parsing after reported fix. DETAILED FINDINGS: (1) ✅ Point filtering works correctly - small amounts (<10 TL) with reward patterns properly filtered. (2) ✅ Simple number formats work - '234,50' and '234' parse correctly. (3) ❌ CRITICAL FAILURE: Complex Turkish number formats still failing - '1.544,14', '1,544.14', '1,544' all fail to import (0% success rate). (4) ❌ CRITICAL FAILURE: Transactions with MAXIMIL/MAXIPUAN patterns being filtered incorrectly - only 2/3 legitimate transactions imported in test case. ROOT CAUSE: The validation logic in lines 674-706 attempts to parse amounts when MAXIMIL/MAXIPUAN is present, but parsing failures cause transactions to be skipped entirely. The main parsing logic (lines 713-756) has correct Turkish number format handling, but transactions never reach it due to earlier filtering. IMPACT: Real Turkish bank credit card imports still losing legitimate transaction data. Success rate for Turkish bank statements remains critically low."
 
 frontend:
   - task: "Basic expense management UI"
