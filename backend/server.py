@@ -675,23 +675,35 @@ async def upload_csv(file: UploadFile = File(...)):
                     # If description contains points info, be more careful with amount validation
                     # Use simplified validation - just check if it's a very small number
                     test_amount_str = str(amount_val).replace('-', '').replace('+', '').strip()
+                    print(f"DEBUG: MAXIMIL/MAXIPUAN validation for amount: '{test_amount_str}'")
                     
                     # Try simple validation first - convert common Turkish patterns
                     try:
                         # Simple pattern matching for obviously small amounts
                         if test_amount_str in ['0,46', '3,09', '1,28', '0,15', '0,16']:
+                            print(f"DEBUG: Filtered - in hardcoded list")
                             continue  # Skip obvious point values
                         # Only check simple decimal formats for small amounts
                         elif len(test_amount_str) <= 4 and '.' not in test_amount_str and ',' in test_amount_str:
                             # Simple Turkish decimal format like "3,09"
                             try:
                                 simple_amount = float(test_amount_str.replace(',', '.'))
+                                print(f"DEBUG: Simple amount check: {simple_amount}")
                                 if simple_amount < 10:
+                                    print(f"DEBUG: Filtered - simple amount < 10")
                                     continue  # Skip small amounts that are likely points
-                            except:
+                                else:
+                                    print(f"DEBUG: Passed - simple amount >= 10")
+                            except Exception as e:
+                                print(f"DEBUG: Simple amount parsing failed: {e}")
                                 pass  # If parsing fails, let main logic handle it
-                    except:
+                        else:
+                            print(f"DEBUG: Passed validation - length={len(test_amount_str)}, has_period={'.' in test_amount_str}")
+                    except Exception as e:
+                        print(f"DEBUG: Validation exception: {e}")
                         pass  # If validation fails, let the main parsing handle it
+                    
+                    print(f"DEBUG: Proceeding to main parsing logic")
                     
                     # For larger/complex numbers with reward patterns, let main parsing decide
                 
