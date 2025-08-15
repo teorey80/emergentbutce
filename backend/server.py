@@ -888,43 +888,68 @@ async def upload_excel(file: UploadFile = File(...)):
                 if len(title) < 3:
                     continue
                 
-                # Extract amount (handle negative values for expenses)
+                # Enhanced amount extraction for Turkish bank statements
                 amount_val = row[column_mapping['amount']]
                 if pd.isna(amount_val):
                     continue
                     
-                # Handle different amount formats
+                # Handle different amount formats - Turkish bank specific
                 amount_str = str(amount_val).strip()
                 
-                # Remove currency symbols and extra text
-                amount_str = re.sub(r'[₺TL\-]', '', amount_str)  # Remove ₺, TL, and - symbols
+                # Skip if the amount looks like a points/bonus value from description leak
+                if 'MAXIMIL' in str(row[column_mapping['title']]).upper() or 'MAXIPUAN' in str(row[column_mapping['title']]).upper():
+                    # If description contains points info, be more careful with amount validation
+                    if float(str(amount_val).replace(',', '.').replace('-', '')) < 10:
+                        continue  # Skip very small amounts that might be points
                 
-                # Handle Turkish decimal format (comma as decimal separator)
-                if ',' in amount_str and '.' not in amount_str:
-                    # Turkish format: 234,50
-                    amount_str = amount_str.replace(',', '.')
-                elif ',' in amount_str and '.' in amount_str:
-                    # Mixed format: 1.234,50 (thousands separator)
-                    parts = amount_str.split(',')
-                    if len(parts) == 2 and len(parts[1]) == 2:  # Decimal part
-                        amount_str = parts[0].replace('.', '') + '.' + parts[1]
+                # Remove currency symbols and negative signs for processing
+                amount_str = re.sub(r'[₺TL]', '', amount_str)  # Remove currency symbols
+                is_negative = '-' in amount_str or '+' not in amount_str  # Most expenses are negative/without +
+                amount_str = amount_str.replace('-', '').replace('+', '').strip()
+                
+                # Handle Turkish number format variations
+                if ',' in amount_str and '.' in amount_str:
+                    # Format like: 1.234,50 OR 1,234.50
+                    if amount_str.rfind(',') > amount_str.rfind('.'):
+                        # Format: 1.234,50 (German/Turkish style)
+                        parts = amount_str.split(',')
+                        if len(parts) == 2 and len(parts[1]) == 2:  # Has decimal part
+                            amount_str = parts[0].replace('.', '') + '.' + parts[1]
+                        else:
+                            amount_str = amount_str.replace(',', '')
                     else:
+                        # Format: 1,234.50 (US style)
                         amount_str = amount_str.replace(',', '')
+                elif ',' in amount_str and '.' not in amount_str:
+                    # Format: 234,50 (Turkish decimal style)
+                    if len(amount_str.split(',')[1]) == 2:  # Has decimal part
+                        amount_str = amount_str.replace(',', '.')
+                    else:
+                        amount_str = amount_str.replace(',', '')  # Thousands separator
+                elif '.' in amount_str and ',' not in amount_str:
+                    # Could be decimal (234.50) or thousands (1.234)
+                    decimal_part = amount_str.split('.')[-1]
+                    if len(decimal_part) == 2:
+                        pass  # Keep as is - it's decimal
+                    else:
+                        amount_str = amount_str.replace('.', '')  # It's thousands separator
                 
-                # Remove any remaining spaces
-                amount_str = amount_str.replace(' ', '').strip()
+                # Clean any remaining spaces and extract numeric value
+                amount_str = re.sub(r'\s+', '', amount_str)
+                amount_match = re.search(r'^(\d+\.?\d*)$', amount_str)
                 
-                # Extract only numeric values with decimal
-                amount_match = re.search(r'(\d+\.?\d*)', amount_str)
                 if amount_match:
                     try:
                         amount = float(amount_match.group(1))
+                        # Ensure reasonable amount range for expenses
+                        if amount < 0.5:  # Less than 50 kuruş, likely a points value
+                            continue
+                        if amount > 100000:  # More than 100k TL, might be a balance or error
+                            if amount > 1000000:  # More than 1M, definitely skip
+                                continue
                     except ValueError:
                         continue
                 else:
-                    continue
-                
-                if amount <= 0:
                     continue
                 
                 # Extract description
