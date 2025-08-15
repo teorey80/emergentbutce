@@ -679,9 +679,17 @@ async def upload_csv(file: UploadFile = File(...)):
                     # Try simple validation first - convert common Turkish patterns
                     try:
                         # Simple pattern matching for obviously small amounts
-                        if test_amount_str in ['0,46', '3,09', '1,28', '0,15', '0,16'] or \
-                           (len(test_amount_str) <= 4 and '.' not in test_amount_str and float(test_amount_str.replace(',', '.')) < 10):
+                        if test_amount_str in ['0,46', '3,09', '1,28', '0,15', '0,16']:
                             continue  # Skip obvious point values
+                        # Only check simple decimal formats for small amounts
+                        elif len(test_amount_str) <= 4 and '.' not in test_amount_str and ',' in test_amount_str:
+                            # Simple Turkish decimal format like "3,09"
+                            try:
+                                simple_amount = float(test_amount_str.replace(',', '.'))
+                                if simple_amount < 10:
+                                    continue  # Skip small amounts that are likely points
+                            except:
+                                pass  # If parsing fails, let main logic handle it
                     except:
                         pass  # If validation fails, let the main parsing handle it
                     
