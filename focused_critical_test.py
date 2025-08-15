@@ -88,8 +88,8 @@ def test_points_filtering():
     
     # Test small amounts that should be filtered
     csv_content = """description,amount,date
-KAZANILAN MAXIMIL:3,09,3,09,2024-01-15
-MAXIPUAN REWARD,0,46,2024-01-15"""
+"KAZANILAN MAXIMIL:3,09","3,09",2024-01-15
+MAXIPUAN REWARD,"0,46",2024-01-15"""
     
     files = {'file': ('points_test.csv', csv_content, 'text/csv')}
     
