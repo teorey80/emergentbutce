@@ -627,10 +627,36 @@ async def upload_csv(file: UploadFile = File(...)):
                 title = re.sub(r'.*mil.*', '', title, flags=re.IGNORECASE)  # Remove miles
                 title = re.sub(r'.*bonus.*', '', title, flags=re.IGNORECASE)  # Remove bonus
                 title = re.sub(r'.*puan.*', '', title, flags=re.IGNORECASE)  # Remove points
+                
+                # Advanced Turkish bank statement cleaning for credit cards
+                # Remove KAZANILAN MAXIMIL and MAXIPUAN sections (İş Bankası format)
+                title = re.sub(r'KAZANILAN\s+MAXIMIL[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                title = re.sub(r'MAXIPUAN[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                title = re.sub(r'IPTAL\s+EDILEN\s+MAXIMIL[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                title = re.sub(r'IPTAL\s+EDILEN\s+MAXIPUAN[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                
+                # Remove other common Turkish bank reward program patterns
+                title = re.sub(r'WORLDPUAN[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                title = re.sub(r'BONUS[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                title = re.sub(r'MIL[:\s]*[\d,]+', '', title, flags=re.IGNORECASE)
+                
+                # Remove installment information in Turkish format
+                title = re.sub(r'\(\d+/\d+\s*TK\)', '', title)  # (1/3 TK) format
+                title = re.sub(r'\d+/\d+\s*TK', '', title)  # 1/3 TK format
                 title = re.sub(r'\d+/\d+.*', '', title)  # Remove installment info
                 title = re.sub(r'\(\d+/\d+.*\)', '', title)  # Remove installment in parentheses
+                
+                # Remove dates and extra text
                 title = re.sub(r'^\d+[./]\d+[./]\d+', '', title)  # Remove dates at start
+                title = re.sub(r'\d+\s*USD', '', title)  # Remove USD amounts
+                title = re.sub(r'[\d,]+\s*TL', '', title)  # Remove TL amounts in description
+                
+                # Clean up location codes (TR, DE, GB etc)
+                title = re.sub(r'\s+[A-Z]{2}\s*$', '', title)  # Remove country codes at end
+                
+                # Clean extra spaces and characters
                 title = re.sub(r'\s+', ' ', title).strip()  # Clean extra spaces
+                title = re.sub(r'^[*\-\s]+|[*\-\s]+$', '', title)  # Remove leading/trailing special chars
                 
                 # Skip if title becomes too short or empty
                 if len(title) < 3:
