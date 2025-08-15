@@ -270,5 +270,11 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Identified major backend routing issue - many endpoints returning 404 despite being defined. Router setup appears correct but endpoints not registering properly. Need to investigate router configuration and endpoint definitions."
+  - agent: "main"
+    message: "MAJOR SUCCESS: Fixed FastAPI router registration timing issue by moving app.include_router(api_router) to end of file after all endpoint definitions. Fixed routing conflicts by reordering predictions/insights endpoints before generic {expense_id} endpoints."
+  - agent: "deep_testing_backend_v2"
+    message: "Backend comprehensive testing completed with 96.4% success rate (27/28 tests passed). All critical routing issues resolved. Statistics, filtering, category updates, file imports, and smart analytics all working correctly with Turkish localization."
+  - agent: "main"
+    message: "Backend fixes complete. User confirmed permission to proceed with frontend testing. About to test UI components, dashboard, filtering interface, file uploads, and expense management features."
   - agent: "testing"
     message: "🎉 COMPREHENSIVE TESTING COMPLETED - 96.4% SUCCESS RATE! ✅ MAJOR ISSUES RESOLVED: Fixed critical routing conflict that was causing 404 errors on filtering endpoints by moving /expenses/filter before /expenses/{expense_id} route. All previously failing endpoints now working: statistics (100% pass), analytics (100% pass), filtering (100% pass), category updates (100% pass). ✅ BACKEND FUNCTIONALITY: All core CRUD operations working perfectly with Turkish data. File imports working well (CSV perfect, Excel/PDF endpoints available). ✅ TURKISH LOCALIZATION: All endpoints properly handle Turkish text, currency formatting (₺), and Turkish month names. ✅ DATA INTEGRITY: Smart categorization working, date parsing functional, amount extraction accurate. ⚠️ MINOR ISSUE: PDF processing has edge cases with malformed files but core functionality works. 🚀 RECOMMENDATION: Backend is production-ready for Turkish expense tracking application!"
