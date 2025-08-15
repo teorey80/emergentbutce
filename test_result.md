@@ -333,10 +333,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All major frontend functionality tested and working"
-  stuck_tasks: []
+    - "Enhanced Turkish bank statement parsing"
+  stuck_tasks:
+    - "Enhanced Turkish bank statement parsing"
   test_all: false
-  test_priority: "completed"
+  test_priority: "critical_first"
 
 agent_communication:
   - agent: "main"
