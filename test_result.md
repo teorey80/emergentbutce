@@ -261,8 +261,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Basic CRUD operations for expenses"
-    - "Categories endpoint"
+    - "Dashboard charts and analytics"
+    - "Category editing in expense list"
+    - "Advanced filtering interface"
+    - "File upload functionality"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
