@@ -680,7 +680,7 @@ async def upload_csv(file: UploadFile = File(...)):
                     try:
                         # Simple pattern matching for obviously small amounts
                         if test_amount_str in ['0,46', '3,09', '1,28', '0,15', '0,16'] or \
-                           (len(test_amount_str) <= 4 and float(test_amount_str.replace(',', '.')) < 10):
+                           (len(test_amount_str) <= 4 and '.' not in test_amount_str and float(test_amount_str.replace(',', '.')) < 10):
                             continue  # Skip obvious point values
                     except:
                         pass  # If validation fails, let the main parsing handle it
